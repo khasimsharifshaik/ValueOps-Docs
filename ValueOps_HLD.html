@@ -1,0 +1,1469 @@
+<!DOCTYPE html>
+<html lang="en-GB">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ValueOps VirtusaX — High-Level Design (HLD)</title>
+    <style>
+        :root {
+            --blue: #2563EB;
+            --blue-light: #dbeafe;
+            --blue-dark: #1e40af;
+            --purple: #7C3AED;
+            --purple-light: #ede9fe;
+            --red: #DC2626;
+            --red-light: #fee2e2;
+            --amber: #BA7517;
+            --amber-light: #fef3c7;
+            --green: #059669;
+            --green-light: #d1fae5;
+            --teal: #0891b2;
+            --teal-light: #cffafe;
+            --slate-50: #f8fafc;
+            --slate-100: #f1f5f9;
+            --slate-200: #e2e8f0;
+            --slate-300: #cbd5e1;
+            --slate-400: #94a3b8;
+            --slate-500: #64748b;
+            --slate-600: #475569;
+            --slate-700: #334155;
+            --slate-800: #1e293b;
+            --slate-900: #0f172a;
+            --radius: 10px;
+            --shadow: 0 1px 3px rgba(0,0,0,0.08), 0 1px 2px rgba(0,0,0,0.06);
+            --shadow-md: 0 4px 6px rgba(0,0,0,0.07), 0 2px 4px rgba(0,0,0,0.06);
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            font-family: 'Segoe UI', -apple-system, BlinkMacSystemFont, sans-serif;
+            background: #ffffff;
+            color: var(--slate-800);
+            line-height: 1.6;
+            min-height: 100vh;
+        }
+
+        /* ── Header ── */
+        header {
+            background: linear-gradient(135deg, var(--blue) 0%, var(--blue-dark) 100%);
+            color: #ffffff;
+            padding: 48px 40px 40px;
+            text-align: center;
+        }
+
+        header h1 {
+            font-size: 2.4em;
+            font-weight: 700;
+            letter-spacing: -0.5px;
+            margin-bottom: 8px;
+        }
+
+        header .subtitle {
+            font-size: 1.15em;
+            opacity: 0.9;
+            margin-bottom: 16px;
+        }
+
+        header .meta {
+            display: flex;
+            gap: 24px;
+            justify-content: center;
+            flex-wrap: wrap;
+            font-size: 0.9em;
+            opacity: 0.8;
+        }
+
+        header .meta span {
+            background: rgba(255,255,255,0.15);
+            padding: 4px 14px;
+            border-radius: 20px;
+        }
+
+        /* ── Layout ── */
+        .page-wrapper {
+            display: flex;
+            max-width: 1440px;
+            margin: 0 auto;
+            min-height: calc(100vh - 200px);
+        }
+
+        /* ── Table of Contents (sidebar) ── */
+        nav.toc {
+            width: 280px;
+            min-width: 280px;
+            background: var(--slate-50);
+            border-right: 1px solid var(--slate-200);
+            padding: 28px 20px;
+            position: sticky;
+            top: 0;
+            height: 100vh;
+            overflow-y: auto;
+        }
+
+        nav.toc h2 {
+            font-size: 0.8em;
+            text-transform: uppercase;
+            letter-spacing: 1.2px;
+            color: var(--slate-500);
+            margin-bottom: 16px;
+            padding-bottom: 8px;
+            border-bottom: 1px solid var(--slate-200);
+        }
+
+        nav.toc ol {
+            list-style: none;
+            counter-reset: toc-counter;
+        }
+
+        nav.toc ol li {
+            counter-increment: toc-counter;
+        }
+
+        nav.toc ol li a {
+            display: block;
+            padding: 7px 10px;
+            color: var(--slate-600);
+            text-decoration: none;
+            font-size: 0.88em;
+            border-radius: 6px;
+            transition: all 0.15s;
+        }
+
+        nav.toc ol li a::before {
+            content: counter(toc-counter) ". ";
+            color: var(--blue);
+            font-weight: 600;
+        }
+
+        nav.toc ol li a:hover {
+            background: var(--blue-light);
+            color: var(--blue-dark);
+        }
+
+        /* ── Main Content ── */
+        main {
+            flex: 1;
+            padding: 40px 48px 80px;
+            max-width: 1100px;
+        }
+
+        section {
+            margin-bottom: 56px;
+        }
+
+        h2.section-title {
+            font-size: 1.6em;
+            color: var(--blue);
+            margin-bottom: 20px;
+            padding-bottom: 10px;
+            border-bottom: 2px solid var(--blue-light);
+            letter-spacing: -0.3px;
+        }
+
+        h3 {
+            font-size: 1.15em;
+            color: var(--slate-700);
+            margin: 24px 0 12px;
+        }
+
+        h4 {
+            font-size: 1em;
+            color: var(--slate-600);
+            margin: 16px 0 8px;
+        }
+
+        p {
+            margin-bottom: 14px;
+            color: var(--slate-700);
+        }
+
+        strong { color: var(--slate-800); }
+
+        /* ── Cards ── */
+        .card {
+            background: #ffffff;
+            border: 1px solid var(--slate-200);
+            border-radius: var(--radius);
+            padding: 24px;
+            margin-bottom: 16px;
+            box-shadow: var(--shadow);
+        }
+
+        .card.blue   { border-left: 4px solid var(--blue); }
+        .card.purple { border-left: 4px solid var(--purple); }
+        .card.red    { border-left: 4px solid var(--red); }
+        .card.amber  { border-left: 4px solid var(--amber); }
+        .card.green  { border-left: 4px solid var(--green); }
+        .card.teal   { border-left: 4px solid var(--teal); }
+
+        .card h4 {
+            margin-top: 0;
+            font-size: 1.05em;
+        }
+
+        .card p:last-child { margin-bottom: 0; }
+
+        /* ── Grid layouts ── */
+        .grid-2 {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 16px;
+        }
+
+        .grid-3 {
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr;
+            gap: 16px;
+        }
+
+        /* ── Tables ── */
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 16px 0 24px;
+            font-size: 0.92em;
+        }
+
+        thead th {
+            background: var(--slate-800);
+            color: #ffffff;
+            padding: 12px 16px;
+            text-align: left;
+            font-weight: 600;
+            font-size: 0.88em;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        thead th:first-child { border-radius: var(--radius) 0 0 0; }
+        thead th:last-child  { border-radius: 0 var(--radius) 0 0; }
+
+        tbody td {
+            padding: 11px 16px;
+            border-bottom: 1px solid var(--slate-200);
+            vertical-align: top;
+        }
+
+        tbody tr:hover { background: var(--slate-50); }
+
+        tbody tr:last-child td:first-child { border-radius: 0 0 0 var(--radius); }
+        tbody tr:last-child td:last-child  { border-radius: 0 0 var(--radius) 0; }
+
+        /* ── Code / Pre ── */
+        pre {
+            background: var(--slate-900);
+            color: #e2e8f0;
+            padding: 20px 24px;
+            border-radius: var(--radius);
+            overflow-x: auto;
+            font-family: 'Cascadia Code', 'Fira Code', 'Consolas', monospace;
+            font-size: 0.85em;
+            line-height: 1.5;
+            margin: 16px 0 24px;
+        }
+
+        code {
+            font-family: 'Cascadia Code', 'Fira Code', 'Consolas', monospace;
+            background: var(--slate-100);
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-size: 0.88em;
+            color: var(--blue-dark);
+        }
+
+        pre code {
+            background: none;
+            padding: 0;
+            color: inherit;
+        }
+
+        .code-comment { color: #6b7280; }
+        .code-keyword { color: #818cf8; }
+        .code-string  { color: #34d399; }
+        .code-type    { color: #f472b6; }
+
+        /* ── Badges ── */
+        .badge {
+            display: inline-block;
+            padding: 3px 10px;
+            border-radius: 12px;
+            font-size: 0.78em;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .badge-mvp    { background: var(--blue-light); color: var(--blue-dark); }
+        .badge-r1     { background: var(--purple-light); color: var(--purple); }
+        .badge-defer  { background: var(--slate-200); color: var(--slate-600); }
+        .badge-green  { background: var(--green-light); color: #065f46; }
+        .badge-red    { background: var(--red-light); color: var(--red); }
+        .badge-amber  { background: var(--amber-light); color: #92400e; }
+
+        /* ── Callout boxes ── */
+        .callout {
+            padding: 16px 20px;
+            border-radius: var(--radius);
+            margin: 16px 0;
+            font-size: 0.92em;
+        }
+
+        .callout-blue {
+            background: var(--blue-light);
+            border: 1px solid #93c5fd;
+            color: var(--blue-dark);
+        }
+
+        .callout-amber {
+            background: var(--amber-light);
+            border: 1px solid #fcd34d;
+            color: #92400e;
+        }
+
+        .callout-red {
+            background: var(--red-light);
+            border: 1px solid #fca5a5;
+            color: #991b1b;
+        }
+
+        .callout-green {
+            background: var(--green-light);
+            border: 1px solid #6ee7b7;
+            color: #065f46;
+        }
+
+        /* ── Diagram container ── */
+        .diagram-box {
+            background: var(--slate-50);
+            border: 1px solid var(--slate-200);
+            border-radius: var(--radius);
+            padding: 28px 32px;
+            margin: 20px 0 24px;
+            overflow-x: auto;
+        }
+
+        .diagram-box pre {
+            background: transparent;
+            color: var(--slate-700);
+            margin: 0;
+            padding: 0;
+            font-size: 0.82em;
+            line-height: 1.4;
+        }
+
+        .diagram-label {
+            text-align: center;
+            font-size: 0.85em;
+            color: var(--slate-500);
+            margin-top: 8px;
+            font-style: italic;
+        }
+
+        /* ── Lists ── */
+        ul, ol {
+            margin: 8px 0 16px 24px;
+        }
+
+        li {
+            margin-bottom: 6px;
+            color: var(--slate-700);
+        }
+
+        /* ── Spine colour chips ── */
+        .colour-chip {
+            display: inline-block;
+            width: 14px;
+            height: 14px;
+            border-radius: 3px;
+            vertical-align: middle;
+            margin-right: 6px;
+            border: 1px solid rgba(0,0,0,0.1);
+        }
+
+        /* ── Persona cards ── */
+        .persona-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+            gap: 12px;
+            margin: 16px 0;
+        }
+
+        .persona-card {
+            border: 1px solid var(--slate-200);
+            border-radius: var(--radius);
+            padding: 16px;
+            text-align: center;
+            box-shadow: var(--shadow);
+        }
+
+        .persona-card .name {
+            font-weight: 700;
+            color: var(--slate-800);
+            margin-bottom: 4px;
+        }
+
+        .persona-card .rights {
+            font-size: 0.82em;
+            color: var(--slate-500);
+        }
+
+        /* ── Footer ── */
+        footer {
+            background: var(--slate-800);
+            color: var(--slate-400);
+            padding: 24px 40px;
+            text-align: center;
+            font-size: 0.85em;
+        }
+
+        footer strong { color: var(--slate-200); }
+
+        /* ── Responsive ── */
+        @media (max-width: 1024px) {
+            .grid-3 { grid-template-columns: 1fr 1fr; }
+        }
+
+        @media (max-width: 860px) {
+            nav.toc { display: none; }
+            main { padding: 28px 20px 60px; }
+            .grid-2, .grid-3 { grid-template-columns: 1fr; }
+            header h1 { font-size: 1.8em; }
+        }
+
+        /* ── Print ── */
+        @media print {
+            nav.toc { display: none; }
+            header { padding: 20px; }
+            main { padding: 20px; max-width: 100%; }
+            pre { white-space: pre-wrap; }
+            .card { break-inside: avoid; }
+        }
+    </style>
+</head>
+<body>
+
+<!-- ════════════════════════════════════════════════════════════════
+     HEADER
+     ════════════════════════════════════════════════════════════════ -->
+<header>
+    <h1>ValueOps VirtusaX</h1>
+    <div class="subtitle">High-Level Design (HLD) &mdash; Architecture as Code Governance Platform</div>
+    <div class="meta">
+        <span>Programme: Helio Modernisation</span>
+        <span>Virtusa CTO Advisory</span>
+        <span>Scope: MVP + R1 (Ph 1&ndash;5 &amp; 12)</span>
+        <span>8 Personas</span>
+    </div>
+</header>
+
+<div class="page-wrapper">
+
+<!-- ════════════════════════════════════════════════════════════════
+     TABLE OF CONTENTS
+     ════════════════════════════════════════════════════════════════ -->
+<nav class="toc">
+    <h2>Contents</h2>
+    <ol>
+        <li><a href="#overview">Project Overview</a></li>
+        <li><a href="#getting-started">Getting Started</a></li>
+        <li><a href="#architecture">Architecture Overview</a></li>
+        <li><a href="#domains">Domain Model (Frozen L1&ndash;L3)</a></li>
+        <li><a href="#artefacts">The Four Artefacts</a></li>
+        <li><a href="#personas">Personas &amp; Authority</a></li>
+        <li><a href="#stack">Technology Stack</a></li>
+        <li><a href="#data">Data Architecture</a></li>
+        <li><a href="#enforcement">Enforcement Model</a></li>
+        <li><a href="#audit">Audit Trail</a></li>
+        <li><a href="#ai">AI-Layer Governance (D1G)</a></li>
+        <li><a href="#deployment">Deployment Topology</a></li>
+        <li><a href="#project-structure">Project Structure</a></li>
+        <li><a href="#testing">Mandatory Test Gates</a></li>
+        <li><a href="#principles">Key Principles</a></li>
+        <li><a href="#guardrails">Guardrails</a></li>
+    </ol>
+</nav>
+
+<!-- ════════════════════════════════════════════════════════════════
+     MAIN CONTENT
+     ════════════════════════════════════════════════════════════════ -->
+<main>
+
+<!-- ── 1. PROJECT OVERVIEW ── -->
+<section id="overview">
+    <h2 class="section-title">1. Project Overview</h2>
+
+    <p><strong>ValueOps</strong> is the authoring and governance <strong>platform</strong> within the
+    <em>Architecture as Code</em> paradigm. It makes live the closed loop:</p>
+
+    <div class="diagram-box">
+        <pre><code>    Discover  ──&gt;  Design  ──&gt;  Deliver  ──&gt;  Run  ──&gt;  Learn
+        ^                                                  │
+        └──────────────────────────────────────────────────┘</code></pre>
+        <div class="diagram-label">Figure 1 &mdash; The ValueOps Continuous Alignment Loop</div>
+    </div>
+
+    <p>The platform keeps strategy, architecture, delivery, runtime and feedback continuously aligned
+    rather than drifting between documents and reality. It <strong>modernises</strong> the architecture
+    practice; it does not replace what engineering already does well.</p>
+
+    <div class="callout callout-blue">
+        <strong>In one line:</strong> SRC is observed &rarr; STD holds the rules &rarr; UX shapes the experience &rarr;
+        APP enforces the rules &rarr; TGT is the workload that must satisfy them.
+    </div>
+
+    <h3>Programme Context</h3>
+    <table>
+        <thead>
+            <tr><th>Attribute</th><th>Value</th></tr>
+        </thead>
+        <tbody>
+            <tr><td>Programme</td><td>Helio Modernisation &mdash; Virtusa CTO Advisory</td></tr>
+            <tr><td>Platform Repo (APP)</td><td><code>ValueOps-VirtusaX</code></td></tr>
+            <tr><td>Scope</td><td>MVP + R1 (Phases 1&ndash;5 &amp; Phase 12)</td></tr>
+            <tr><td>Personas</td><td>8 (5 MVP + 3 R1)</td></tr>
+            <tr><td>Domains in scope</td><td>D1 (D1A&ndash;D1G), D2 stub, D3 (D3A&ndash;D3B, D3C, D3H)</td></tr>
+            <tr><td>Backend Stack</td><td>NestJS &middot; TypeScript &middot; Node v22 (ADR-0001, proposed)</td></tr>
+            <tr><td>Audit Sink</td><td>Hash-chained, append-only PostgreSQL (ADR-0002, proposed)</td></tr>
+        </tbody>
+    </table>
+
+    <h3>Repository Family (Five Families, Twelve Repos)</h3>
+    <table>
+        <thead>
+            <tr><th>Family</th><th>Repository</th><th>Role</th></tr>
+        </thead>
+        <tbody>
+            <tr><td><strong>APP</strong></td><td><code>ValueOps-VirtusaX</code></td><td>The platform &mdash; deploys to AWS. Primary build repo.</td></tr>
+            <tr><td><strong>TGT</strong></td><td><code>ValueOpsVX-Banking-Target</code></td><td>Modernised banking workload &mdash; governed subject, not platform.</td></tr>
+            <tr><td><strong>STD</strong></td><td><code>ValueOps-VXDemo-Standards-Policies</code></td><td>Enterprise catalogue / Standards Canon &mdash; ADRs, policies, controls.</td></tr>
+            <tr><td><strong>SRC</strong></td><td><code>Bank-Demo</code></td><td>Source monolith (Apache Fineract) &mdash; read-only, observe only.</td></tr>
+            <tr><td><strong>UX</strong></td><td>8 persona-flow repos</td><td>Per-persona concept flows &mdash; design source for APP surfaces.</td></tr>
+        </tbody>
+    </table>
+</section>
+
+<!-- ── 2. GETTING STARTED ── -->
+<section id="getting-started">
+    <h2 class="section-title">2. Getting Started</h2>
+
+    <h3>Prerequisites</h3>
+    <ul>
+        <li><strong>Node.js v22</strong> (LTS) &amp; npm</li>
+        <li><strong>Docker</strong> &amp; <strong>Docker Compose</strong> (substrate services)</li>
+        <li>Git access to <code>ValueOps-VirtusaX</code> and related repos</li>
+        <li>Apple Silicon note: pin OPA to <code>platform: linux/amd64</code></li>
+    </ul>
+
+    <h3>Quick Start</h3>
+    <pre><code><span class="code-comment"># 1. Clone and install</span>
+<span class="code-keyword">git</span> clone https://github.com/chillisurfer-one/ValueOps-VirtusaX.git
+<span class="code-keyword">cd</span> ValueOps-VirtusaX
+<span class="code-keyword">npm</span> install
+
+<span class="code-comment"># 2. Stand up the substrate (day one)</span>
+<span class="code-keyword">docker</span> compose up -d
+
+<span class="code-comment"># 3. With observability (optional, off by default)</span>
+<span class="code-keyword">docker</span> compose --profile observability up -d
+
+<span class="code-comment"># 4. Run database migrations</span>
+<span class="code-keyword">npx</span> prisma migrate deploy          <span class="code-comment"># or: npm run db:migrate</span>
+
+<span class="code-comment"># 5. Seed synthetic banking-domain data</span>
+<span class="code-keyword">npm</span> run db:seed                     <span class="code-comment"># SYNTHETIC data only &mdash; no real customer data</span>
+
+<span class="code-comment"># 6. Verify Keycloak</span>
+<span class="code-comment"># Browse to http://localhost:8080 &mdash; confirm &quot;helio&quot; realm with persona roles</span>
+
+<span class="code-comment"># 7. Start the platform</span>
+<span class="code-keyword">npm</span> run start:dev</code></pre>
+
+    <h3>Keycloak Realm: <code>helio</code></h3>
+    <table>
+        <thead>
+            <tr><th>Release</th><th>Roles provisioned</th></tr>
+        </thead>
+        <tbody>
+            <tr><td><span class="badge badge-mvp">MVP</span></td><td>Product Manager, Enterprise Architect, Lead Architect, Solution Architect, Lead Engineer</td></tr>
+            <tr><td><span class="badge badge-r1">R1</span></td><td>+ Risk Officer, Ethics Reviewer, Compliance Lead</td></tr>
+        </tbody>
+    </table>
+</section>
+
+<!-- ── 3. ARCHITECTURE OVERVIEW ── -->
+<section id="architecture">
+    <h2 class="section-title">3. Architecture Overview</h2>
+
+    <p>The platform is organised into four layers, each with distinct responsibilities. The NestJS
+    backend uses a <strong>module-per-domain</strong> pattern &mdash; no cross-domain imports are
+    permitted.</p>
+
+    <div class="diagram-box">
+        <pre><code>┌──────────────────────────────────────────────────────────────────────────┐
+│                        FRONTEND  (React + TypeScript)                    │
+│  SpecAuthoringPanel  |  SpecViewer  |  Persona Surfaces  |  Dashboards  │
+└──────────────────────────────┬───────────────────────────────────────────┘
+                               │  REST / WebSocket
+┌──────────────────────────────▼───────────────────────────────────────────┐
+│                     BACKEND  (NestJS + TypeScript + Node 22)             │
+│                                                                          │
+│   ┌─────────┐  ┌─────────┐  ┌─────────┐  ┌───────────┐  ┌───────────┐  │
+│   │  src/d1  │  │  src/d2  │  │  src/d3  │  │ src/audit │  │src/conform│  │
+│   │ Arch as  │  │Strategy │  │  Risk /  │  │  Trail    │  │  ance     │  │
+│   │  Code    │  │  Stub   │  │  Ethics  │  │  Emitter  │  │  Engine   │  │
+│   └────┬─────┘  └────┬─────┘  └────┬─────┘  └─────┬─────┘  └─────┬─────┘  │
+│        │             │             │              │              │         │
+│   ┌────┴─────────────┴─────────────┴──────────────┴──────────────┴───┐    │
+│   │  src/personas  (projection layer &mdash; server-side surfacing)       │    │
+│   └──────────────────────────────────────────────────────────────────┘    │
+│   ┌──────────────────────────────────────────────────────────────────┐    │
+│   │  src/platform  (gateway, events, config, auth guard)             │    │
+│   └──────────────────────────────────────────────────────────────────┘    │
+└──────────────────────────────┬───────────────────────────────────────────┘
+                               │
+┌──────────────────────────────▼───────────────────────────────────────────┐
+│                       INTEGRATION LAYER                                  │
+│                                                                          │
+│   ┌───────────┐   ┌──────────┐   ┌──────────┐   ┌────────────────────┐  │
+│   │ Redpanda  │   │   OPA    │   │ Keycloak │   │  GitHub Actions    │  │
+│   │ (Events)  │   │ (Policy  │   │ (SSO /   │   │  (CI Pipeline /    │  │
+│   │           │   │  Engine) │   │  RBAC)   │   │   Audit Emitter)   │  │
+│   └─────┬─────┘   └────┬─────┘   └────┬─────┘   └────────┬───────────┘  │
+└─────────┼──────────────┼──────────────┼──────────────────┼───────────────┘
+          │              │              │                   │
+┌─────────▼──────────────▼──────────────▼──────────────────▼───────────────┐
+│                          DATA LAYER                                       │
+│                                                                           │
+│   ┌────────────────────────────┐   ┌──────────┐   ┌──────────┐          │
+│   │       PostgreSQL           │   │  MinIO   │   │ Weaviate │          │
+│   │  ┌────┬────┬────┬───────┐  │   │  (S3     │   │ (Vector  │          │
+│   │  │ d1 │ d2 │ d3 │audit  │  │   │  compat) │   │  store)  │          │
+│   │  └────┴────┴────┴───────┘  │   └──────────┘   └──────────┘          │
+│   └────────────────────────────┘                                         │
+│                                     ┌──────────┐                         │
+│                                     │  Ollama  │                         │
+│                                     │  (Local  │                         │
+│                                     │   LLM)   │                         │
+│                                     └──────────┘                         │
+└──────────────────────────────────────────────────────────────────────────┘</code></pre>
+        <div class="diagram-label">Figure 2 &mdash; Four-Layer Architecture (Frontend / Backend / Integration / Data)</div>
+    </div>
+
+    <h3>Layer Responsibilities</h3>
+    <div class="grid-2">
+        <div class="card blue">
+            <h4>Frontend &mdash; React + TypeScript</h4>
+            <p>Persona-specific surfaces built from UX-flow repos. SpecAuthoringPanel, SpecViewer,
+            dashboards, heatmaps. Progressive disclosure, WCAG 2.1 AA compliant.</p>
+        </div>
+        <div class="card green">
+            <h4>Backend &mdash; NestJS Modules</h4>
+            <p>Module-per-domain: <code>src/d1/</code>, <code>src/d2/</code>, <code>src/d3/</code>.
+            Shared modules: <code>audit</code>, <code>conformance</code>, <code>personas</code>,
+            <code>platform</code>. No cross-domain imports; events for cross-domain communication.</p>
+        </div>
+        <div class="card purple">
+            <h4>Integration Layer</h4>
+            <p>Redpanda (event backbone), OPA (policy engine &mdash; CLI in CI + service for runtime),
+            Keycloak (SSO/RBAC, <code>helio</code> realm), GitHub Actions (CI pipeline + audit emitter).</p>
+        </div>
+        <div class="card teal">
+            <h4>Data Layer</h4>
+            <p>PostgreSQL (schemas <code>d1</code>&ndash;<code>d3</code> + <code>audit</code>),
+            MinIO (object store), Weaviate (vector/semantic for D1G), Ollama (self-hosted LLM, pinned model).</p>
+        </div>
+    </div>
+</section>
+
+<!-- ── 4. DOMAIN MODEL ── -->
+<section id="domains">
+    <h2 class="section-title">4. Domain Model (Frozen L1&ndash;L3)</h2>
+
+    <p>Five L1 domains with distinct, non-overlapping authority. The frozen L1&ndash;L3 model is the
+    source of truth in STD. <strong>Do not blur these lines, rename entries, or add capabilities beyond
+    the catalogue.</strong></p>
+
+    <div class="callout callout-amber">
+        <strong>Separation of concerns (invariant):</strong>
+        Architecture control &rarr; D1 &middot; Decisions &rarr; D2 &middot; Constraints &rarr; D3 &middot;
+        Context/telemetry &rarr; D4/D4H &middot; Learning/innovation &rarr; D5 &middot; AI synthesis &rarr; D1G &middot;
+        Runtime control plane &rarr; D1H. Of these, only D1 (D1A&ndash;D1G), D2 stub, and D3 land in MVP&rarr;R1.
+    </div>
+
+    <h3>D1 &mdash; Architecture as Code &amp; Continuous Alignment <span class="badge badge-mvp">MVP + R1</span></h3>
+    <p><em>Controls architecture (the spine)</em></p>
+    <table>
+        <thead>
+            <tr><th>L2</th><th>Release</th><th>Capabilities</th></tr>
+        </thead>
+        <tbody>
+            <tr>
+                <td><strong>D1A</strong> Authoring &amp; Artefacts</td>
+                <td><span class="badge badge-mvp">MVP</span></td>
+                <td>ADRs (context, decision, alternatives, consequences). C4 Context/Container/Deployment as versioned PlantUML. Intent specs (SDD v0). Requirements &rarr; Epics/Stories &rarr; Jira. Draft reference-architecture generation.</td>
+            </tr>
+            <tr>
+                <td><strong>D1B</strong> Policies &amp; Controls as Code</td>
+                <td><span class="badge badge-mvp">MVP</span></td>
+                <td>Policies as Code (OPA/Rego, YAML) &mdash; design-time. Controls as Code (tfsec, ArchUnit, Conftest) &mdash; build-time at PR/CI.</td>
+            </tr>
+            <tr>
+                <td><strong>D1C</strong> Governance &amp; Workflow</td>
+                <td><span class="badge badge-mvp">MVP</span></td>
+                <td>Chain: SA drafts &rarr; LA reviews &amp; recommends &rarr; EA approves &rarr; binding in CI/CD. Handover seam: LE accepts or raises variation. Waiver/variation loop with traceability.</td>
+            </tr>
+            <tr>
+                <td><strong>D1D</strong> Drift &amp; Conformance</td>
+                <td><span class="badge badge-mvp">MVP</span></td>
+                <td>Drift detection: implementation vs reference architecture and vs intent. ADR &rarr; implementation traceability. Conformance checks in CI; divergence flagged as drift.</td>
+            </tr>
+            <tr>
+                <td><strong>D1E</strong> Metadata &amp; Taxonomy</td>
+                <td><span class="badge badge-mvp">MVP</span></td>
+                <td>Machine-readable ADR metadata. Lifecycle tags. Domain/capability/platform tagging. Drives pipeline policy resolution.</td>
+            </tr>
+            <tr>
+                <td><strong>D1F</strong> Tooling &amp; Pipelines</td>
+                <td><span class="badge badge-mvp">MVP</span></td>
+                <td>GitHub + Jira integration. GitHub Actions CI guardrails. Scaffold generation from accepted ADR + intent spec into TGT.</td>
+            </tr>
+            <tr>
+                <td><strong>D1G</strong> Cognitive Workbench</td>
+                <td><span class="badge badge-r1">R1 Ph 12</span></td>
+                <td>AI-assisted authoring: contextual insights, pattern matching &amp; reuse, decision intelligence, NL explanation, decision-trace annotator, telemetry feedback loop, persona-adaptive UI.</td>
+            </tr>
+        </tbody>
+    </table>
+
+    <h3>D2 &mdash; Strategy &amp; Capability Intelligence <span class="badge badge-mvp">MVP Ph 3</span> <span class="badge badge-defer">Stub Only</span></h3>
+    <p><em>Makes decisions</em></p>
+    <table>
+        <thead>
+            <tr><th>L2</th><th>Release</th><th>Capabilities</th></tr>
+        </thead>
+        <tbody>
+            <tr>
+                <td><strong>D2 stub</strong></td>
+                <td><span class="badge badge-mvp">MVP</span></td>
+                <td>Strategy-to-architecture seam only. Structured product-spec capture (problem, audience, value, constraints) &rarr; Jira Epics + Stories + acceptance criteria + proposed-ADR/risk stubs + PlantUML stubs. Forward-compatible entry point for Phase 3 Intent&rarr;Specification Engine.</td>
+            </tr>
+        </tbody>
+    </table>
+
+    <h3>D3 &mdash; Risk, Ethics &amp; Trust Architecture <span class="badge badge-r1">R1</span></h3>
+    <p><em>Enforces constraints &mdash; the assurance backbone</em></p>
+    <table>
+        <thead>
+            <tr><th>L2</th><th>Release</th><th>Capabilities</th></tr>
+        </thead>
+        <tbody>
+            <tr>
+                <td><strong>D3A&ndash;D3B</strong> Risk as Code</td>
+                <td><span class="badge badge-r1">R1 Ph 4</span></td>
+                <td>Nested risk taxonomy; risk propagation modelling; contextual risk scoring &rarr; heatmaps. Declarative risk policies (YAML/JSON/Rego). CI guardrail automation. <code>@risk</code> annotations. Immutable audit trail. Exports: ISO 31000, NIST RMF, FCA, GDPR.</td>
+            </tr>
+            <tr>
+                <td><strong>D3C</strong> Ethics as Code</td>
+                <td><span class="badge badge-r1">R1 Ph 5</span></td>
+                <td>Ethics Taxonomy Engine (fairness, autonomy, transparency, inclusion, accountability, well-being). Ethics rules as declarative artefacts. Ethics policy linter. <code>@ethics</code> annotation. Ethical drift detection. CI/CD ethics gate. Exports: FCA, ICO, EU AI Act.</td>
+            </tr>
+            <tr>
+                <td><strong>D3H</strong> Privacy-as-Code</td>
+                <td><span class="badge badge-r1">R1 Ph 5</span></td>
+                <td>Data minimisation with documented legal basis. Privacy guards / schema validation. Consent flows and opt-out / data-rights controls. DPIA support feeding the audit trail.</td>
+            </tr>
+        </tbody>
+    </table>
+
+    <h3>Deferred (R2+) <span class="badge badge-defer">Do Not Build</span></h3>
+    <div class="callout callout-red">
+        <strong>Out of scope:</strong> D1H (Runtime Architecture Controller) &middot; D2 full (incl. D2G Capability-Investment Engine) &middot;
+        D4 (D4A&ndash;D4H, incl. telemetry sensing) &middot; D5 (D5A&ndash;D5F, incl. Innovation Trigger Engine) &middot;
+        Graph store / reuse graph (Ph 13) &middot; Admission-time cluster enforcement &middot; Service mesh.
+    </div>
+</section>
+
+<!-- ── 5. THE FOUR ARTEFACTS ── -->
+<section id="artefacts">
+    <h2 class="section-title">5. The Four Artefacts &amp; the Mechanism</h2>
+
+    <p>The ADR declares intent and carries the policy/control bindings; the linked policy checks the design
+    and the control checks the build; divergence is flagged as <strong>drift</strong> and traced back
+    to the governing ADR.</p>
+
+    <div class="grid-2">
+        <div class="card blue">
+            <h4><span class="colour-chip" style="background:#2563EB"></span>ADR &mdash; Decision of Record</h4>
+            <p>Context, decision, alternatives, consequences. <strong>Immutable once approved.</strong>
+            Carries metadata linking up to strategy and out to enforcement. Governs <em>why</em> the target is shaped as it is.</p>
+        </div>
+        <div class="card purple">
+            <h4><span class="colour-chip" style="background:#7C3AED"></span>Model / Visual Artefact</h4>
+            <p>Executable design &mdash; C4 / structured diagrams as versioned artefacts, not static images.
+            Governs <em>design expression</em>. Tooling: PlantUML.</p>
+        </div>
+        <div class="card red">
+            <h4><span class="colour-chip" style="background:#DC2626"></span>Policy &mdash; Governs Design</h4>
+            <p>What must be true at design time. <strong>Policies govern design (intent).</strong>
+            Expressed as OPA/Rego or YAML. Stored in <code>/policies/</code>.</p>
+        </div>
+        <div class="card amber">
+            <h4><span class="colour-chip" style="background:#BA7517"></span>Control &mdash; Governs Build</h4>
+            <p>How compliance is proven at build time (PR/CI). <strong>Controls govern build (enforcement).</strong>
+            Tools: tfsec, ArchUnit, Conftest. Stored in <code>/controls/</code>.</p>
+        </div>
+    </div>
+
+    <div class="diagram-box">
+        <pre><code>        ┌─────────────┐
+        │     ADR     │  declares intent; carries policy/control bindings
+        └──────┬──────┘
+               │
+       ┌───────┴───────┐
+       ▼               ▼
+  ┌─────────┐    ┌──────────┐
+  │ Policy  │    │ Control  │
+  │ (design)│    │ (build)  │
+  └────┬────┘    └────┬─────┘
+       │              │
+       ▼              ▼
+  ┌─────────┐    ┌──────────┐
+  │  OPA    │    │  tfsec   │       Divergence = Drift
+  │  eval   │    │ ArchUnit │       Traced back to ADR
+  └─────────┘    │ Conftest │
+                 └──────────┘</code></pre>
+        <div class="diagram-label">Figure 3 &mdash; The Artefact Mechanism: ADR &rarr; Policy + Control &rarr; Enforcement</div>
+    </div>
+</section>
+
+<!-- ── 6. PERSONAS & AUTHORITY ── -->
+<section id="personas">
+    <h2 class="section-title">6. Personas &amp; Authority</h2>
+
+    <p>The governance chain is enforced in code: available actions must match rights. Surfacing enforcement
+    is <strong>server-side</strong> via a persona-scoped projection layer &mdash; never the client.</p>
+
+    <div class="persona-grid">
+        <div class="persona-card" style="border-top: 3px solid var(--blue);">
+            <div class="name">Product Manager</div>
+            <span class="badge badge-mvp">MVP</span>
+            <div class="rights">Initiatives, epics, stories &rarr; Jira. <strong>No ADRs.</strong> Plain business language only.</div>
+        </div>
+        <div class="persona-card" style="border-top: 3px solid var(--blue);">
+            <div class="name">Enterprise Architect</div>
+            <span class="badge badge-mvp">MVP</span>
+            <div class="rights"><strong>Approves</strong> ADRs / policies. Full architecture surface.</div>
+        </div>
+        <div class="persona-card" style="border-top: 3px solid var(--blue);">
+            <div class="name">Lead Architect</div>
+            <span class="badge badge-mvp">MVP</span>
+            <div class="rights"><strong>Authors / submits</strong> ADRs; reviews &amp; recommends. Full architecture surface.</div>
+        </div>
+        <div class="persona-card" style="border-top: 3px solid var(--blue);">
+            <div class="name">Solution Architect</div>
+            <span class="badge badge-mvp">MVP</span>
+            <div class="rights"><strong>Drafts</strong> ADRs &amp; intent specs. Full architecture surface.</div>
+        </div>
+        <div class="persona-card" style="border-top: 3px solid var(--blue);">
+            <div class="name">Lead Engineer</div>
+            <span class="badge badge-mvp">MVP</span>
+            <div class="rights">Accepts / varies handover (contract). Full engineering surface.</div>
+        </div>
+        <div class="persona-card" style="border-top: 3px solid var(--purple);">
+            <div class="name">Risk Officer</div>
+            <span class="badge badge-r1">R1</span>
+            <div class="rights">Accept / escalate / waive. <strong>Plain business language</strong> &mdash; no policy-code surface.</div>
+        </div>
+        <div class="persona-card" style="border-top: 3px solid var(--purple);">
+            <div class="name">Ethics Reviewer</div>
+            <span class="badge badge-r1">R1</span>
+            <div class="rights">Reviews ethics flags. <strong>Plain business language</strong> &mdash; no policy-code surface.</div>
+        </div>
+        <div class="persona-card" style="border-top: 3px solid var(--purple);">
+            <div class="name">Compliance Lead</div>
+            <span class="badge badge-r1">R1</span>
+            <div class="rights">Attests / exports evidence. <strong>Plain business language</strong> &mdash; no policy-code surface.</div>
+        </div>
+    </div>
+
+    <h3>Governance Chain</h3>
+    <div class="diagram-box">
+        <pre><code>  SA drafts ──&gt; LA reviews &amp; recommends ──&gt; EA approves ──&gt; Binding in CI/CD
+                                                                     │
+                                              LE accepts handover  &lt;─┘
+                                              (or raises variation)</code></pre>
+        <div class="diagram-label">Figure 4 &mdash; The Approval Chain (SA &rarr; LA &rarr; EA &rarr; LE)</div>
+    </div>
+
+    <div class="callout callout-red">
+        <strong>Surfacing enforcement:</strong> Business-persona DTOs (PM, Risk Officer, Ethics Reviewer,
+        Compliance Lead) exclude Rego bodies, ADR metadata, and any policy code <strong>by construction</strong>.
+        A mandatory test gate verifies a business-persona token cannot retrieve these fields.
+    </div>
+</section>
+
+<!-- ── 7. TECHNOLOGY STACK ── -->
+<section id="stack">
+    <h2 class="section-title">7. Technology Stack</h2>
+
+    <p>Portable, cloud-agnostic substrate (Docker Compose) &mdash; stand it up on day one.
+    Same stack runs on the shared EC2 host. Per-domain separation holds from day one.</p>
+
+    <table>
+        <thead>
+            <tr><th>Concern</th><th>Component</th><th>Notes</th></tr>
+        </thead>
+        <tbody>
+            <tr><td>Platform Runtime</td><td><strong>NestJS &middot; TypeScript &middot; Node v22</strong></td><td>ADR-0001 (proposed). Module-per-domain. One stack per repo.</td></tr>
+            <tr><td>Frontend</td><td><strong>React + TypeScript</strong></td><td>SpecAuthoringPanel, SpecViewer, persona surfaces.</td></tr>
+            <tr><td>ORM / Migrations</td><td><strong>Prisma</strong></td><td>Reversible, versioned migrations. No destructive changes without a gate.</td></tr>
+            <tr><td>Tests</td><td><strong>Jest</strong> (+ supertest)</td><td>Governance-gate tests mandatory.</td></tr>
+            <tr><td>Relational DB</td><td><strong>PostgreSQL</strong></td><td>Schemas <code>d1</code>&ndash;<code>d5</code> + <code>audit</code>. No cross-schema FKs.</td></tr>
+            <tr><td>Events</td><td><strong>Redpanda</strong></td><td>Topic: <code>valueops.&lt;domain&gt;.&lt;event&gt;</code>. Versioned schemas.</td></tr>
+            <tr><td>Vector / Semantic</td><td><strong>Weaviate</strong></td><td>Semantic store for D1G Cognitive Workbench.</td></tr>
+            <tr><td>Policy Engine</td><td><strong>OPA</strong> (Rego)</td><td>CLI in CI runner + substrate service for in-app eval. Same Rego, two contexts.</td></tr>
+            <tr><td>Identity / SSO</td><td><strong>Keycloak</strong> (realm <code>helio</code>)</td><td>5 MVP roles &rarr; 8 R1. RBAC + projection layer.</td></tr>
+            <tr><td>AI Layer</td><td><strong>Ollama</strong> (self-hosted, pinned model)</td><td>No external model calls at runtime. PII-safe prompts only.</td></tr>
+            <tr><td>Object Store</td><td><strong>MinIO</strong> (S3-compatible)</td><td>Artefact storage.</td></tr>
+            <tr><td>CI</td><td><strong>GitHub Actions</strong></td><td>Rule-validation pipeline + audit emitter.</td></tr>
+            <tr><td>Observability</td><td><strong>OTel &middot; Prometheus &middot; Grafana &middot; Loki</strong></td><td>Behind Compose profile, off by default.</td></tr>
+        </tbody>
+    </table>
+
+    <div class="callout callout-amber">
+        <strong>Governed workload (context):</strong> TGT = Java / Spring (banking workload, separate repo).
+        ArchUnit runs against TGT regardless of APP's language. <br>
+        <strong>AWS mapping (landing zone TBC):</strong> Postgres &rarr; RDS/Aurora, Redpanda &rarr; MSK,
+        Keycloak &rarr; Cognito/managed, etc. Do not harden against it yet.
+    </div>
+</section>
+
+<!-- ── 8. DATA ARCHITECTURE ── -->
+<section id="data">
+    <h2 class="section-title">8. Data Architecture</h2>
+
+    <h3>PostgreSQL Schema Layout</h3>
+    <div class="diagram-box">
+        <pre><code>  PostgreSQL Instance
+  ├── Schema: d1          (Architecture as Code &mdash; D1A&ndash;D1G)        [populated]
+  ├── Schema: d2          (Strategy stub &mdash; D2)                    [populated]
+  ├── Schema: d3          (Risk / Ethics / Privacy &mdash; D3)           [populated]
+  ├── Schema: d4          (Context / Telemetry &mdash; D4)               [reserved, empty]
+  ├── Schema: d5          (Learning / Innovation &mdash; D5)             [reserved, empty]
+  └── Schema: audit       (Immutable audit trail &mdash; append-only)   [populated]</code></pre>
+        <div class="diagram-label">Figure 5 &mdash; PostgreSQL Schema Separation (one schema per domain + audit)</div>
+    </div>
+
+    <h3>Data Separation Rules</h3>
+    <ul>
+        <li><strong>No cross-schema foreign keys.</strong> Domain separation is enforced in the data layer; cross-domain references are by id over events/APIs, not FKs.</li>
+        <li><strong>Prisma migrations:</strong> reversible, versioned, reviewed. No destructive change (drop/rename) without a governed gate.</li>
+        <li><strong>Migrations run in CI</strong>, not by hand on shared hosts.</li>
+        <li><strong>Synthetic data only</strong> &mdash; no real customer or personal data anywhere.</li>
+    </ul>
+
+    <h3>Audit Schema Detail</h3>
+    <div class="card red">
+        <h4>Append-only, Hash-chained (ADR-0002, proposed)</h4>
+        <ul>
+            <li>Each record carries <code>prevHash</code> = hash of the prior record &mdash; tamper-evident.</li>
+            <li>Writer roles (CI token, APP audit role) hold <strong>INSERT only</strong> &mdash; no UPDATE / DELETE grant.</li>
+            <li>Any edit or deletion breaks the chain and is detectable.</li>
+            <li>Deferred hardening: periodically anchor the latest chain hash out-of-band.</li>
+        </ul>
+    </div>
+
+    <h3>Audit Event Schema</h3>
+    <pre><code><span class="code-keyword">interface</span> <span class="code-type">AuditEvent</span> {
+  eventId:      <span class="code-type">string</span>;          <span class="code-comment">// UUID</span>
+  timestamp:    <span class="code-type">string</span>;          <span class="code-comment">// ISO 8601</span>
+  actor:        <span class="code-type">string</span>;          <span class="code-comment">// user id + persona</span>
+  action:       <span class="code-type">AuditAction</span>;     <span class="code-comment">// see below</span>
+  artefactRef:  <span class="code-type">string</span>;
+  artefactType: <span class="code-type">string</span>;
+  storyId?:     <span class="code-type">string</span>;
+  adrRefs:      <span class="code-type">string</span>[];
+  decision:     <span class="code-string">'pass'</span> | <span class="code-string">'fail'</span> | <span class="code-string">'waiver'</span> | <span class="code-string">'approve'</span> | <span class="code-string">'reject'</span>;
+  rationale?:   <span class="code-type">string</span>;          <span class="code-comment">// required for waiver/override</span>
+  policyRefs:   <span class="code-type">string</span>[];
+  commitSha:    <span class="code-type">string</span>;
+  runId?:       <span class="code-type">string</span>;
+  prevHash:     <span class="code-type">string</span>;          <span class="code-comment">// hash of prior record (chain integrity)</span>
+}
+
+<span class="code-keyword">type</span> <span class="code-type">AuditAction</span> =
+  | <span class="code-string">'policy-eval'</span> | <span class="code-string">'control-check'</span>
+  | <span class="code-string">'adr-transition'</span> | <span class="code-string">'spec-signoff'</span>
+  | <span class="code-string">'handover'</span> | <span class="code-string">'waiver'</span> | <span class="code-string">'override'</span>;</code></pre>
+
+    <h3>Redpanda Event Topics</h3>
+    <table>
+        <thead>
+            <tr><th>Convention</th><th>Examples</th></tr>
+        </thead>
+        <tbody>
+            <tr><td><code>valueops.&lt;domain&gt;.&lt;event&gt;</code></td><td><code>valueops.d1.adr-approved</code> &middot; <code>valueops.d3.risk-waived</code> &middot; <code>valueops.d1.spec-signed-off</code></td></tr>
+        </tbody>
+    </table>
+    <p>Event schemas are versioned. Events carry ids + timestamps &mdash; do not assume last-write-wins.</p>
+</section>
+
+<!-- ── 9. ENFORCEMENT MODEL ── -->
+<section id="enforcement">
+    <h2 class="section-title">9. Enforcement Model</h2>
+
+    <p>The <strong>conformance engine</strong> (APP) reads STD and enforces against TGT. Policies (OPA/Rego, YAML)
+    check design; controls (tfsec/ArchUnit/Conftest) check build.</p>
+
+    <h3>Enforcement Points</h3>
+    <table>
+        <thead>
+            <tr><th>Point</th><th>When</th><th>What</th><th>Status</th></tr>
+        </thead>
+        <tbody>
+            <tr>
+                <td><strong>Pre-commit</strong></td>
+                <td>Local dev</td>
+                <td>Spec linter, policy lint, secret scan (gitleaks)</td>
+                <td><span class="badge badge-green">Active</span></td>
+            </tr>
+            <tr>
+                <td><strong>CI / Pull Request</strong></td>
+                <td>On push/PR</td>
+                <td>Rule-validation pipeline: policies (design) + controls (build). Merge blocked on failure.</td>
+                <td><span class="badge badge-green">Active</span></td>
+            </tr>
+            <tr>
+                <td><strong>Admission</strong></td>
+                <td>Deploy</td>
+                <td>Cluster rejection (Kubernetes only)</td>
+                <td><span class="badge badge-defer">Deferred</span></td>
+            </tr>
+            <tr>
+                <td><strong>Drift Detection</strong></td>
+                <td>Scheduled</td>
+                <td>Live estate vs intent; divergence traced to ADR</td>
+                <td><span class="badge badge-green">Active</span></td>
+            </tr>
+        </tbody>
+    </table>
+
+    <h3>Rule-Validation Pipeline (GitHub Actions + OPA)</h3>
+    <div class="diagram-box">
+        <pre><code>  Repository Event (push / PR / artefact change)
+           │
+           ▼
+  ┌────────────────────────┐
+  │  Policy Resolution     │  metadata/taxonomy tags &rarr; policy-selector mapping
+  │  (deterministic)       │  unresolvable = fail closed
+  └───────────┬────────────┘
+              │
+      ┌───────┴───────┐
+      ▼               ▼
+  ┌─────────┐   ┌──────────┐
+  │ Stage 1 │   │ Stage 2  │     Two stages, reported separately
+  │ Design  │   │  Build   │
+  │ (OPA)   │   │ (tfsec / │
+  │         │   │ ArchUnit │
+  │         │   │ Conftest) │
+  └────┬────┘   └────┬─────┘
+       │              │
+       └──────┬───────┘
+              ▼
+  ┌────────────────────────┐
+  │  Result: Pass / Fail   │  Hard block  OR  waiver (mandatory rationale + right persona)
+  │         / Waiver       │
+  └───────────┬────────────┘
+              ▼
+  ┌────────────────────────┐
+  │  Emit Audit Record     │  artefact ref, policyRefs, decision, actor, commitSha, runId, prevHash
+  └────────────────────────┘</code></pre>
+        <div class="diagram-label">Figure 6 &mdash; Rule-Validation Pipeline Flow</div>
+    </div>
+
+    <h3>Three Trigger Sites, One Pattern</h3>
+    <ul>
+        <li><strong>TGT</strong> &mdash; workload conformance vs the STD catalogue</li>
+        <li><strong>APP</strong> &mdash; the platform governing itself</li>
+        <li><strong>STD</strong> &mdash; ADR/policy/control-transition PRs gated (the chain runs as PR checks)</li>
+    </ul>
+</section>
+
+<!-- ── 10. AUDIT TRAIL ── -->
+<section id="audit">
+    <h2 class="section-title">10. Audit Trail</h2>
+
+    <p>The immutable audit trail is the <strong>assurance backbone</strong>. Two emitters, one schema, one sink.</p>
+
+    <div class="grid-2">
+        <div class="card green">
+            <h4>Emitter A &mdash; CI (GitHub Actions)</h4>
+            <p>Writes an event at each pipeline evaluation: policy-eval, control-check, pass/fail/waiver.
+            Every evaluation is recorded regardless of outcome.</p>
+        </div>
+        <div class="card blue">
+            <h4>Emitter B &mdash; APP / UX Approvals</h4>
+            <p>At each human governance action (approve, recommend, sign-off, waive, override), APP
+            performs a <strong>dual write</strong>: (1) update artefact governance state, (2) append audit event.
+            Both writes required &mdash; partial write rolls back.</p>
+        </div>
+    </div>
+
+    <h3>Dual-Write Mechanism</h3>
+    <div class="diagram-box">
+        <pre><code>  Persona triggers approval action
+           │
+           ▼
+  ┌────────────────────────┐
+  │  Authority Check       │  Does persona hold this right? (EA approves, LA recommends, etc.)
+  └───────────┬────────────┘
+              │ yes                      │ no
+              ▼                          ▼
+  ┌────────────────────┐      ┌─────────────────────┐
+  │  Write 1: Update   │      │  Reject &amp; audit the  │
+  │  artefact state    │      │  unauthorised attempt │
+  │  (version-control) │      └─────────────────────┘
+  └─────────┬──────────┘
+            │
+            ▼
+  ┌────────────────────┐
+  │  Write 2: Append   │
+  │  audit event       │
+  │  (hash-chained)    │
+  └─────────┬──────────┘
+            │
+            ▼
+  Both succeed? &rarr; Action complete
+  Either fails?  &rarr; Roll back / alarm (never silent success)</code></pre>
+        <div class="diagram-label">Figure 7 &mdash; Dual-Write: Artefact State + Audit Event</div>
+    </div>
+
+    <h3>Trust Boundary</h3>
+    <ul>
+        <li><strong>CI and UX are the only writers.</strong> No other path writes to the audit trail.</li>
+        <li><strong>APP owns the read/export</strong>, not the write. D3 assurance surfaces query and export.</li>
+        <li>Export formats aligned to: ISO 31000, NIST RMF, FCA, ICO, EU AI Act.</li>
+    </ul>
+</section>
+
+<!-- ── 11. AI-LAYER GOVERNANCE ── -->
+<section id="ai">
+    <h2 class="section-title">11. AI-Layer Governance (D1G)</h2>
+
+    <div class="grid-2">
+        <div class="card purple">
+            <h4>AI-Assisted and Governed</h4>
+            <p>D1G accelerates authoring; <strong>nothing it produces is binding</strong> until the human
+            chain approves and the pipeline validates. AI-drafted ADR rationale is a suggestion until the
+            author owns it; the decision-trace annotator versions the human edit.</p>
+        </div>
+        <div class="card red">
+            <h4>Self-Hosted Only</h4>
+            <p>Ollama on-box/adjacent; <strong>no external model endpoint at runtime</strong>. The platform
+            never sends data off the substrate to a model. Model pinned (name + version) for reproducibility;
+            changing it is an ADR.</p>
+        </div>
+    </div>
+
+    <h3>D1G Capabilities (R1, Phase 12)</h3>
+    <ul>
+        <li><strong>Contextual insight surfacing</strong> &mdash; related ADRs/policies/reusable components by tag; inline risk/ethics/platform rules</li>
+        <li><strong>Intelligent pattern matching &amp; reuse</strong> with fitness scoring</li>
+        <li><strong>Decision intelligence &amp; guardrail enforcement</strong> &mdash; AI-assisted ADR drafting with traceable rationale, trade-off views, pre-merge OPA/Rego validation</li>
+        <li><strong>Collaboration &amp; knowledge amplification</strong> &mdash; NL explanation of ADRs/diagrams/policies, AI-suggested rationale</li>
+        <li><strong>Decision-trace annotator</strong> &mdash; versioned, auditable</li>
+        <li><strong>Telemetry feedback loop</strong> &mdash; accept/edit/ignore (PII-safe)</li>
+        <li><strong>Persona-adaptive, progressive-disclosure UI</strong></li>
+    </ul>
+
+    <div class="callout callout-red">
+        <strong>No PII / customer data to the model.</strong> Prompts are built from governed artefacts
+        and metadata, not raw customer data (D3H).
+    </div>
+</section>
+
+<!-- ── 12. DEPLOYMENT TOPOLOGY ── -->
+<section id="deployment">
+    <h2 class="section-title">12. Deployment Topology</h2>
+
+    <h3>Three Environments</h3>
+    <div class="grid-3">
+        <div class="card green">
+            <h4>Local Development</h4>
+            <p><code>docker compose up -d</code><br>
+            Full substrate on developer machine. Same stack as production.
+            Observability optional (<code>--profile observability</code>).</p>
+        </div>
+        <div class="card blue">
+            <h4>Shared EC2 (Team / Demo)</h4>
+            <p>Always-on environment for the VirtusaX team. Same Compose stack.
+            Provisioned with Terraform. HTTPS via TLS-terminating reverse proxy.</p>
+        </div>
+        <div class="card purple">
+            <h4>Future AWS (Landing Zone TBC)</h4>
+            <p>Postgres &rarr; RDS/Aurora, Redpanda &rarr; MSK, Containers &rarr; EKS/ECS.
+            <strong>Do not harden against this yet.</strong></p>
+        </div>
+    </div>
+
+    <h3>Shared EC2 Specification</h3>
+    <table>
+        <thead>
+            <tr><th>Attribute</th><th>Value</th></tr>
+        </thead>
+        <tbody>
+            <tr><td>Instance type</td><td>General-purpose, &ge; 8 vCPU / 32 GB RAM</td></tr>
+            <tr><td>Provisioning</td><td>Terraform (instance, EBS, security group, elastic IP) &mdash; in-repo, reproducible</td></tr>
+            <tr><td>Persistence</td><td>Dedicated EBS volume for all stateful services (Postgres incl. audit, MinIO, Weaviate, Redpanda, Keycloak). Snapshot-backed. Never on ephemeral/root disk.</td></tr>
+            <tr><td>Access</td><td>HTTPS on 443 via TLS-terminating reverse proxy (Caddy/Traefik). No exposed service ports. SSH from known ranges; prefer AWS SSM Session Manager.</td></tr>
+            <tr><td>TLS</td><td>Real certificate (no self-signed for shared environment)</td></tr>
+            <tr><td>Auth</td><td>Keycloak <code>helio</code> realm &mdash; single front door; persona-mapped accounts</td></tr>
+            <tr><td>Secrets</td><td>Locked-down <code>.env</code>; abstracted for clean Vault swap later</td></tr>
+            <tr><td>Bring-up</td><td><code>docker compose up -d</code> on boot (systemd / <code>unless-stopped</code>)</td></tr>
+        </tbody>
+    </table>
+
+    <div class="diagram-box">
+        <pre><code>  ┌──────────────────────── EC2 Instance (8 vCPU / 32 GB) ────────────────────┐
+  │                                                                            │
+  │   ┌──────────────┐                                                         │
+  │   │ Caddy/Traefik│ :443 (HTTPS, real TLS cert)                            │
+  │   └──────┬───────┘                                                         │
+  │          │                                                                 │
+  │   ┌──────▼───────────────────────────────────────────────────────────┐     │
+  │   │                Docker Compose Stack                              │     │
+  │   │                                                                  │     │
+  │   │  NestJS APP  |  React (static)  |  Keycloak  |  OPA  |  Ollama  │     │
+  │   │                                                                  │     │
+  │   │  PostgreSQL  |  Redpanda  |  MinIO  |  Weaviate                  │     │
+  │   │                                                                  │     │
+  │   │  [optional] Prometheus  |  Grafana  |  Loki  |  OTel Collector   │     │
+  │   └──────────────────────────────────┬───────────────────────────────┘     │
+  │                                      │                                     │
+  │                           ┌──────────▼──────────┐                          │
+  │                           │   EBS Data Volume    │  snapshot-backed         │
+  │                           │   (all stateful data)│                          │
+  │                           └─────────────────────┘                          │
+  └────────────────────────────────────────────────────────────────────────────┘</code></pre>
+        <div class="diagram-label">Figure 8 &mdash; Shared EC2 Deployment Topology</div>
+    </div>
+
+    <div class="callout callout-amber">
+        <strong>Deferred on this host:</strong> Service mesh / mTLS, admission enforcement, autoscaling,
+        multi-AZ. Do not simulate Kubernetes-only enforcement on the Compose host &mdash; note the gap.
+    </div>
+</section>
+
+<!-- ── 13. PROJECT STRUCTURE ── -->
+<section id="project-structure">
+    <h2 class="section-title">13. Project Structure</h2>
+
+    <pre><code>ValueOps-VirtusaX/
+├── src/
+│   ├── d1/                    <span class="code-comment"># D1 &mdash; Architecture as Code (D1A&ndash;D1G)</span>
+│   │   ├── authoring/         <span class="code-comment"># D1A &mdash; ADRs, models, intent specs</span>
+│   │   ├── policies/          <span class="code-comment"># D1B &mdash; Policies &amp; Controls as Code</span>
+│   │   ├── governance/        <span class="code-comment"># D1C &mdash; Governance workflow (chain)</span>
+│   │   ├── conformance/       <span class="code-comment"># D1D &mdash; Drift &amp; conformance</span>
+│   │   ├── metadata/          <span class="code-comment"># D1E &mdash; Metadata &amp; taxonomy</span>
+│   │   ├── tooling/           <span class="code-comment"># D1F &mdash; Tooling &amp; pipelines</span>
+│   │   └── cognitive/         <span class="code-comment"># D1G &mdash; Cognitive Workbench (R1)</span>
+│   ├── d2/                    <span class="code-comment"># D2 &mdash; Strategy stub</span>
+│   ├── d3/                    <span class="code-comment"># D3 &mdash; Risk, Ethics &amp; Trust</span>
+│   │   ├── risk/              <span class="code-comment"># D3A&ndash;D3B &mdash; Risk as Code</span>
+│   │   ├── ethics/            <span class="code-comment"># D3C &mdash; Ethics as Code</span>
+│   │   └── privacy/           <span class="code-comment"># D3H &mdash; Privacy-as-Code</span>
+│   ├── audit/                 <span class="code-comment"># Audit trail emitter + read/export</span>
+│   ├── conformance/           <span class="code-comment"># Conformance engine (reads STD, governs TGT)</span>
+│   ├── personas/              <span class="code-comment"># Persona projection layer (server-side surfacing)</span>
+│   └── platform/              <span class="code-comment"># Gateway, events, config, auth guard</span>
+├── prisma/                    <span class="code-comment"># Prisma schema + migrations</span>
+│   ├── schema.prisma
+│   └── migrations/
+├── policies/                  <span class="code-comment"># OPA/Rego policy artefacts</span>
+├── controls/                  <span class="code-comment"># tfsec / ArchUnit / Conftest controls</span>
+├── .github/
+│   └── workflows/             <span class="code-comment"># GitHub Actions &mdash; CI pipeline + audit emitter</span>
+├── tests/                     <span class="code-comment"># Governance-gate tests + e2e</span>
+├── docker-compose.yml         <span class="code-comment"># Substrate definition</span>
+├── .env.example               <span class="code-comment"># Environment template (no secrets)</span>
+├── CLAUDE.md                  <span class="code-comment"># Build contract (this governs APP)</span>
+├── MVP_DOMAIN_SCOPE.md        <span class="code-comment"># MVP scope anchor</span>
+└── R1_DOMAIN_SCOPE.md         <span class="code-comment"># R1 scope anchor</span></code></pre>
+
+    <div class="callout callout-blue">
+        <strong>Module rules:</strong> No cross-domain imports (D1 never imports D2/D3 internals).
+        Cross-domain communication is via events (Redpanda) or defined interfaces only.
+        Conform to the repo scaffold &mdash; no parallel structure.
+    </div>
+</section>
+
+<!-- ── 14. MANDATORY TEST GATES ── -->
+<section id="testing">
+    <h2 class="section-title">14. Mandatory Test Gates</h2>
+
+    <p>A red governance-gate test <strong>blocks merge</strong>. These are non-negotiable.</p>
+
+    <table>
+        <thead>
+            <tr><th>#</th><th>Gate</th><th>What It Verifies</th><th>Blocks</th></tr>
+        </thead>
+        <tbody>
+            <tr>
+                <td>1</td>
+                <td><strong>Persona Surfacing</strong></td>
+                <td>A business-persona token (PM, Risk Officer, Ethics Reviewer, Compliance Lead) <strong>cannot</strong> retrieve a policy body or ADR metadata field via any endpoint.</td>
+                <td><span class="badge badge-red">Merge</span></td>
+            </tr>
+            <tr>
+                <td>2</td>
+                <td><strong>Approval Authority</strong></td>
+                <td>A persona without the right cannot approve. EA approves; LA recommends; SA drafts; LE handover; PM approves nothing architectural.</td>
+                <td><span class="badge badge-red">Merge</span></td>
+            </tr>
+            <tr>
+                <td>3</td>
+                <td><strong>Audit Dual-Write</strong></td>
+                <td>An approval writes <strong>both</strong> artefact state and audit trail. A partial write (artefact-only or trail-only) <strong>fails</strong>.</td>
+                <td><span class="badge badge-red">Merge</span></td>
+            </tr>
+            <tr>
+                <td>4</td>
+                <td><strong>Spec Linter</strong></td>
+                <td>Mechanism language rejected; 1:1 storyId; no orphans; <code>additionalProperties: false</code>; ADR coverage consistent.</td>
+                <td><span class="badge badge-red">Merge</span></td>
+            </tr>
+            <tr>
+                <td>5</td>
+                <td><strong>Gap Blocks Handover</strong></td>
+                <td>A spec with <code>adrCoverage: 'gap'</code> blocks handover until resolved to <code>references</code> or <code>none_required</code>.</td>
+                <td><span class="badge badge-red">Handover</span></td>
+            </tr>
+            <tr>
+                <td>6</td>
+                <td><strong>Audit Immutability</strong></td>
+                <td>No UPDATE/DELETE path on the <code>audit</code> schema. Hash-chain verification passes.</td>
+                <td><span class="badge badge-red">Merge</span></td>
+            </tr>
+        </tbody>
+    </table>
+
+    <h3>Test Taxonomy</h3>
+    <table>
+        <thead>
+            <tr><th>Type</th><th>Scope</th><th>Framework</th></tr>
+        </thead>
+        <tbody>
+            <tr><td>Unit</td><td>Domain logic, linter rules</td><td>Jest</td></tr>
+            <tr><td>Integration</td><td>Per-domain surfaces + DB</td><td>Jest + supertest</td></tr>
+            <tr><td>Contract</td><td>STD-read / TGT-govern seams, OpenAPI</td><td>Jest + supertest</td></tr>
+            <tr><td>E2E</td><td>Governance flows (full chain)</td><td>Jest + supertest</td></tr>
+        </tbody>
+    </table>
+</section>
+
+<!-- ── 15. KEY PRINCIPLES ── -->
+<section id="principles">
+    <h2 class="section-title">15. Key Principles</h2>
+
+    <div class="grid-2">
+        <div class="card blue">
+            <h4>APP is not TGT</h4>
+            <p>The platform (APP) governs the workload (TGT). Platform domain code (D1&ndash;D5) never goes in TGT;
+            TGT never carries platform code.</p>
+        </div>
+        <div class="card blue">
+            <h4>Frozen Domain Model</h4>
+            <p>Five L1 domains with fixed authority, frozen L1&ndash;L3 catalogue in STD. Do not extend, rename,
+            or blur boundaries.</p>
+        </div>
+        <div class="card blue">
+            <h4>Catalogue is Single Source</h4>
+            <p>Rules live in STD; APP enforces; TGT complies; SRC is evidence; UX is the experience.
+            Author through the chain (SA &rarr; LA &rarr; EA), never free-type.</p>
+        </div>
+        <div class="card blue">
+            <h4>Spec is Intent (SDD v0)</h4>
+            <p>One spec per story, 1:1, mandatory. Intent only &mdash; no mechanism, no interfaces,
+            no technology. Governance lives on the ADR, never in the spec.</p>
+        </div>
+        <div class="card red">
+            <h4>Policies Govern Design; Controls Govern Build</h4>
+            <p>A guardrail at design time is a policy (OPA/Rego, YAML). One at build time is a control
+            (tfsec/ArchUnit/Conftest at PR/CI). Never conflate.</p>
+        </div>
+        <div class="card red">
+            <h4>Dual-Write Audit</h4>
+            <p>Every governed action updates the artefact state <strong>and</strong> appends to the immutable
+            audit trail. Both writes required &mdash; a partial write is a failure.</p>
+        </div>
+        <div class="card purple">
+            <h4>AI Accelerates, Humans Decide</h4>
+            <p>Nothing the AI layer produces is binding until the human chain approves and the pipeline
+            validates. Self-hosted only (Ollama); no external model calls.</p>
+        </div>
+        <div class="card purple">
+            <h4>Persona Surfacing is Server-Side</h4>
+            <p>Business-persona DTOs exclude Rego, ADR metadata, and policy code by construction.
+            Enforced at the API boundary, never the client. Tested with a mandatory gate.</p>
+        </div>
+        <div class="card green">
+            <h4>One Stack per Repo</h4>
+            <p>APP = NestJS/TypeScript (ADR-0001). Do not introduce a second backend stack.
+            Do not import across domain boundaries in code.</p>
+        </div>
+        <div class="card green">
+            <h4>Synthetic Data Only</h4>
+            <p>No real customer or personal data anywhere &mdash; dev, demo, shared EC2, prompts, logs.
+            Enforced with gitleaks in pre-commit and CI.</p>
+        </div>
+    </div>
+</section>
+
+<!-- ── 16. GUARDRAILS ── -->
+<section id="guardrails">
+    <h2 class="section-title">16. Guardrails &mdash; What Not to Do</h2>
+
+    <div class="callout callout-red">
+        <strong>These are hard boundaries. A seeming need to cross one is an escalation, not a commit.</strong>
+    </div>
+
+    <table>
+        <thead>
+            <tr><th>Category</th><th>Guardrail</th></tr>
+        </thead>
+        <tbody>
+            <tr><td>Repo boundaries</td><td>Do not put platform (D1&ndash;D5) code in TGT, workload code in APP, or rules/workload code in STD.</td></tr>
+            <tr><td>Domain model</td><td>Do not reopen or blur domain boundaries or add L2/L3 beyond the frozen STD catalogue.</td></tr>
+            <tr><td>Scope</td><td>Do not build R2/R3 scope &mdash; no full D2, D4, D5, D1H, graph store, D2G, admission control, or service mesh.</td></tr>
+            <tr><td>Catalogue</td><td>Do not free-type catalogue artefacts. ADRs/policies/controls go SA &rarr; LA &rarr; EA; nothing binds until EA approves.</td></tr>
+            <tr><td>Spec intent</td><td>Do not put mechanism into a spec &mdash; no interfaces, contracts, data models, structure, bindings, Rego, or technology.</td></tr>
+            <tr><td>Persona surfacing</td><td>Do not surface policy code or ADR metadata to PM, Risk Officer, Ethics Reviewer, or Compliance Lead. Do not give the PM ADR rights.</td></tr>
+            <tr><td>AI governance</td><td>Do not let AI output bind without human approval and pipeline validation. No external model calls; no PII to the model.</td></tr>
+            <tr><td>Audit integrity</td><td>Do not write to the audit trail outside CI / UX emitters. No UPDATE/DELETE on the audit schema. No partial writes.</td></tr>
+            <tr><td>Data</td><td>Do not add cross-schema foreign keys. No destructive migrations without a gate. No real customer/personal data. No secrets in code.</td></tr>
+            <tr><td>Infrastructure</td><td>Do not harden against AWS mapping until landing zone confirmed. Do not simulate Kubernetes-only enforcement on Compose.</td></tr>
+            <tr><td>Stack</td><td>Do not introduce a second backend stack. One persona at a time, validated against scope anchor.</td></tr>
+        </tbody>
+    </table>
+</section>
+
+</main>
+</div>
+
+<!-- ════════════════════════════════════════════════════════════════
+     FOOTER
+     ════════════════════════════════════════════════════════════════ -->
+<footer>
+    <p><strong>ValueOps VirtusaX</strong> &middot; Helio Modernisation Programme &middot; Virtusa CTO Advisory</p>
+    <p>APP (<code>ValueOps-VirtusaX</code>) &middot; MVP + R1 (Phases 1&ndash;5 &amp; 12) &middot; 8 Personas &middot;
+    Architecture as Code &mdash; AI-assisted and governed throughout</p>
+    <p style="margin-top: 8px; font-size: 0.9em;">
+        Proposed ADRs: ADR-0001 (NestJS/TS backend) &middot; ADR-0002 (hash-chained audit sink) &middot;
+        British English &middot; Built with Claude Code, targeting AWS
+    </p>
+</footer>
+
+</body>
+</html>

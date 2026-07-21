@@ -1,0 +1,583 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ValueOps VirtusaX — Documentation Hub</title>
+    <style>
+        :root {
+            --bg-primary: #0f172a;
+            --bg-card: #1e293b;
+            --bg-card-hover: #273548;
+            --border: #334155;
+            --text-primary: #f1f5f9;
+            --text-secondary: #94a3b8;
+            --text-muted: #64748b;
+            --accent-blue: #3b82f6;
+            --accent-cyan: #06b6d4;
+            --accent-green: #10b981;
+            --accent-purple: #8b5cf6;
+            --accent-amber: #f59e0b;
+            --accent-rose: #f43f5e;
+            --accent-indigo: #6366f1;
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            font-family: 'Segoe UI', -apple-system, BlinkMacSystemFont, sans-serif;
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            min-height: 100vh;
+        }
+
+        /* ── Top bar ── */
+        .topbar {
+            position: sticky;
+            top: 0;
+            z-index: 100;
+            background: rgba(15, 23, 42, 0.85);
+            backdrop-filter: blur(16px);
+            border-bottom: 1px solid var(--border);
+            padding: 0 40px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            height: 56px;
+        }
+
+        .topbar-brand {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            font-weight: 700;
+            font-size: 1.05em;
+            color: var(--text-primary);
+            text-decoration: none;
+        }
+
+        .topbar-brand .logo {
+            width: 32px;
+            height: 32px;
+            background: linear-gradient(135deg, var(--accent-blue), var(--accent-purple));
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 16px;
+            color: #fff;
+            font-weight: 900;
+        }
+
+        .topbar-meta {
+            display: flex;
+            align-items: center;
+            gap: 20px;
+            font-size: 12px;
+            color: var(--text-muted);
+        }
+
+        .topbar-meta .dot {
+            width: 6px;
+            height: 6px;
+            background: var(--accent-green);
+            border-radius: 50%;
+            display: inline-block;
+        }
+
+        /* ── Hero ── */
+        .hero {
+            padding: 60px 40px 40px;
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        .hero h1 {
+            font-size: 2.8em;
+            font-weight: 800;
+            letter-spacing: -0.03em;
+            line-height: 1.1;
+            margin-bottom: 16px;
+            background: linear-gradient(135deg, var(--accent-blue), var(--accent-cyan), var(--accent-purple));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .hero p {
+            font-size: 1.15em;
+            color: var(--text-secondary);
+            max-width: 700px;
+            line-height: 1.6;
+        }
+
+        .hero-badges {
+            display: flex;
+            gap: 10px;
+            margin-top: 20px;
+            flex-wrap: wrap;
+        }
+
+        .hero-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 5px 14px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 600;
+            border: 1px solid var(--border);
+            background: var(--bg-card);
+            color: var(--text-secondary);
+        }
+
+        .hero-badge .dot-badge {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+        }
+
+        /* ── Filter bar ── */
+        .filters {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0 40px 20px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+
+        .filter-btn {
+            padding: 7px 18px;
+            border-radius: 20px;
+            border: 1px solid var(--border);
+            background: transparent;
+            color: var(--text-secondary);
+            font-size: 13px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .filter-btn:hover,
+        .filter-btn.active {
+            background: var(--accent-blue);
+            color: #fff;
+            border-color: var(--accent-blue);
+        }
+
+        .filter-label {
+            font-size: 13px;
+            color: var(--text-muted);
+            margin-right: 6px;
+        }
+
+        /* ── Card grid ── */
+        .grid {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0 40px 60px;
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
+            gap: 20px;
+        }
+
+        .card {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            overflow: hidden;
+            text-decoration: none;
+            color: inherit;
+            transition: all 0.25s ease;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .card:hover {
+            background: var(--bg-card-hover);
+            border-color: var(--accent-blue);
+            transform: translateY(-4px);
+            box-shadow: 0 12px 40px rgba(59, 130, 246, 0.15);
+        }
+
+        .card-accent {
+            height: 4px;
+            width: 100%;
+        }
+
+        .card-body {
+            padding: 24px;
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .card-icon {
+            width: 44px;
+            height: 44px;
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 22px;
+            margin-bottom: 16px;
+            flex-shrink: 0;
+        }
+
+        .card-title {
+            font-size: 1.15em;
+            font-weight: 700;
+            margin-bottom: 8px;
+            line-height: 1.3;
+        }
+
+        .card-desc {
+            font-size: 13px;
+            color: var(--text-secondary);
+            line-height: 1.5;
+            flex: 1;
+        }
+
+        .card-footer {
+            padding: 14px 24px;
+            border-top: 1px solid var(--border);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .card-tags {
+            display: flex;
+            gap: 6px;
+            flex-wrap: wrap;
+        }
+
+        .tag {
+            font-size: 10px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            padding: 3px 8px;
+            border-radius: 4px;
+            border: 1px solid;
+        }
+
+        .tag-hld       { color: var(--accent-blue);   border-color: rgba(59,130,246,0.3);  background: rgba(59,130,246,0.1); }
+        .tag-arch      { color: var(--accent-purple); border-color: rgba(139,92,246,0.3);  background: rgba(139,92,246,0.1); }
+        .tag-data      { color: var(--accent-cyan);   border-color: rgba(6,182,212,0.3);   background: rgba(6,182,212,0.1); }
+        .tag-mindmap   { color: var(--accent-amber);  border-color: rgba(245,158,11,0.3);  background: rgba(245,158,11,0.1); }
+        .tag-workflow   { color: var(--accent-green);  border-color: rgba(16,185,129,0.3);  background: rgba(16,185,129,0.1); }
+        .tag-schema    { color: var(--accent-rose);   border-color: rgba(244,63,94,0.3);   background: rgba(244,63,94,0.1); }
+        .tag-planning  { color: var(--accent-indigo); border-color: rgba(99,102,241,0.3);  background: rgba(99,102,241,0.1); }
+        .tag-reference { color: var(--text-secondary); border-color: rgba(148,163,184,0.3); background: rgba(148,163,184,0.1); }
+
+        .card-arrow {
+            color: var(--text-muted);
+            font-size: 18px;
+            transition: transform 0.2s;
+        }
+
+        .card:hover .card-arrow {
+            color: var(--accent-blue);
+            transform: translateX(4px);
+        }
+
+        /* ── Quick-stats row ── */
+        .stats {
+            max-width: 1200px;
+            margin: 0 auto 30px;
+            padding: 0 40px;
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+            gap: 14px;
+        }
+
+        .stat {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            padding: 18px 20px;
+            display: flex;
+            align-items: center;
+            gap: 14px;
+        }
+
+        .stat-icon {
+            width: 40px;
+            height: 40px;
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 18px;
+            flex-shrink: 0;
+        }
+
+        .stat-value {
+            font-size: 1.5em;
+            font-weight: 800;
+            line-height: 1;
+        }
+
+        .stat-label {
+            font-size: 11px;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        /* ── Empty state ── */
+        .empty {
+            grid-column: 1 / -1;
+            text-align: center;
+            padding: 60px 20px;
+            color: var(--text-muted);
+        }
+
+        .empty-icon {
+            font-size: 48px;
+            margin-bottom: 16px;
+        }
+
+        /* ── Footer ── */
+        footer {
+            border-top: 1px solid var(--border);
+            padding: 30px 40px;
+            text-align: center;
+            color: var(--text-muted);
+            font-size: 12px;
+        }
+
+        footer a {
+            color: var(--accent-blue);
+            text-decoration: none;
+        }
+
+        /* ── Responsive ── */
+        @media (max-width: 768px) {
+            .topbar { padding: 0 20px; }
+            .hero { padding: 40px 20px 30px; }
+            .hero h1 { font-size: 2em; }
+            .filters, .grid, .stats { padding-left: 20px; padding-right: 20px; }
+            .grid { grid-template-columns: 1fr; }
+            .stats { grid-template-columns: repeat(2, 1fr); }
+        }
+
+        /* ── Filter logic ── */
+        .card[data-hidden="true"] {
+            display: none;
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Top bar -->
+    <nav class="topbar">
+        <a href="index.html" class="topbar-brand">
+            <div class="logo">V</div>
+            ValueOps Documentation
+        </a>
+        <div class="topbar-meta">
+            <span><span class="dot"></span> MVP + R1</span>
+            <span>Helio Modernisation</span>
+            <span>Virtusa CTO Advisory</span>
+        </div>
+    </nav>
+
+    <!-- Hero -->
+    <section class="hero">
+        <h1>ValueOps VirtusaX<br>Documentation Hub</h1>
+        <p>
+            Central navigation for all project documentation — architecture diagrams,
+            data flows, mind maps, workflows, schemas, and planning artefacts.
+            Every new document lands here automatically.
+        </p>
+        <div class="hero-badges">
+            <span class="hero-badge"><span class="dot-badge" style="background:var(--accent-blue)"></span> Architecture as Code</span>
+            <span class="hero-badge"><span class="dot-badge" style="background:var(--accent-green)"></span> AI-Assisted &amp; Governed</span>
+            <span class="hero-badge"><span class="dot-badge" style="background:var(--accent-purple)"></span> 8 Personas</span>
+            <span class="hero-badge"><span class="dot-badge" style="background:var(--accent-amber)"></span> 5 Domains (D1–D3 in scope)</span>
+            <span class="hero-badge"><span class="dot-badge" style="background:var(--accent-rose)"></span> Dual-Write Audit</span>
+        </div>
+    </section>
+
+    <!-- Quick stats -->
+    <div class="stats">
+        <div class="stat">
+            <div class="stat-icon" style="background:rgba(59,130,246,0.15); color:var(--accent-blue);">&#128196;</div>
+            <div>
+                <div class="stat-value" id="totalDocs">3</div>
+                <div class="stat-label">Documents</div>
+            </div>
+        </div>
+        <div class="stat">
+            <div class="stat-icon" style="background:rgba(139,92,246,0.15); color:var(--accent-purple);">&#127959;</div>
+            <div>
+                <div class="stat-value">5</div>
+                <div class="stat-label">Domains</div>
+            </div>
+        </div>
+        <div class="stat">
+            <div class="stat-icon" style="background:rgba(16,185,129,0.15); color:var(--accent-green);">&#128101;</div>
+            <div>
+                <div class="stat-value">8</div>
+                <div class="stat-label">Personas</div>
+            </div>
+        </div>
+        <div class="stat">
+            <div class="stat-icon" style="background:rgba(245,158,11,0.15); color:var(--accent-amber);">&#128202;</div>
+            <div>
+                <div class="stat-value">4</div>
+                <div class="stat-label">Schemas</div>
+            </div>
+        </div>
+        <div class="stat">
+            <div class="stat-icon" style="background:rgba(244,63,94,0.15); color:var(--accent-rose);">&#9888;</div>
+            <div>
+                <div class="stat-value">6</div>
+                <div class="stat-label">Phases</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Filters -->
+    <div class="filters">
+        <span class="filter-label">Filter:</span>
+        <button class="filter-btn active" data-filter="all" onclick="filterCards('all', this)">All</button>
+        <button class="filter-btn" data-filter="architecture" onclick="filterCards('architecture', this)">Architecture</button>
+        <button class="filter-btn" data-filter="data" onclick="filterCards('data', this)">Data &amp; Schemas</button>
+        <button class="filter-btn" data-filter="mindmap" onclick="filterCards('mindmap', this)">Mind Maps</button>
+        <button class="filter-btn" data-filter="workflow" onclick="filterCards('workflow', this)">Workflows</button>
+        <button class="filter-btn" data-filter="planning" onclick="filterCards('planning', this)">Planning</button>
+        <button class="filter-btn" data-filter="reference" onclick="filterCards('reference', this)">Reference</button>
+    </div>
+
+    <!-- Card Grid -->
+    <div class="grid" id="cardGrid">
+
+        <!-- ──────────────────────────────────────────────
+             CARD 1: High Level Design
+             ────────────────────────────────────────────── -->
+        <a href="ValueOps_HLD.html" class="card" data-category="architecture planning">
+            <div class="card-accent" style="background: linear-gradient(90deg, var(--accent-blue), var(--accent-purple));"></div>
+            <div class="card-body">
+                <div class="card-icon" style="background:rgba(59,130,246,0.15); color:var(--accent-blue);">&#127959;</div>
+                <div class="card-title">High Level Design (HLD)</div>
+                <div class="card-desc">
+                    Complete project overview — architecture layers, domain model (D1–D3),
+                    technology stack (NestJS, React, PostgreSQL, Keycloak, Redpanda, OPA, Ollama),
+                    deployment model, getting-started guide, and key principles.
+                </div>
+            </div>
+            <div class="card-footer">
+                <div class="card-tags">
+                    <span class="tag tag-hld">HLD</span>
+                    <span class="tag tag-arch">Architecture</span>
+                    <span class="tag tag-planning">Planning</span>
+                </div>
+                <span class="card-arrow">&rarr;</span>
+            </div>
+        </a>
+
+        <!-- ──────────────────────────────────────────────
+             CARD 2: 3D Component Architecture
+             ────────────────────────────────────────────── -->
+        <a href="ValueOps_3D_Architecture.html" class="card" data-category="architecture data">
+            <div class="card-accent" style="background: linear-gradient(90deg, var(--accent-purple), var(--accent-cyan));"></div>
+            <div class="card-body">
+                <div class="card-icon" style="background:rgba(139,92,246,0.15); color:var(--accent-purple);">&#128736;</div>
+                <div class="card-title">3D Component Architecture</div>
+                <div class="card-desc">
+                    Layered component-level view — Frontend (React), Backend (NestJS modules D1–D3),
+                    Integration (Redpanda, OPA, conformance engine), Data (PostgreSQL, Keycloak,
+                    MinIO, Weaviate, Ollama). Includes data flows, Docker Compose topology.
+                </div>
+            </div>
+            <div class="card-footer">
+                <div class="card-tags">
+                    <span class="tag tag-arch">Architecture</span>
+                    <span class="tag tag-data">Components</span>
+                </div>
+                <span class="card-arrow">&rarr;</span>
+            </div>
+        </a>
+
+        <!-- ──────────────────────────────────────────────
+             CARD 3: Data Flow Mind Map
+             ────────────────────────────────────────────── -->
+        <a href="DataFlow_MindMap.html" class="card" data-category="data mindmap schema">
+            <div class="card-accent" style="background: linear-gradient(90deg, var(--accent-cyan), var(--accent-amber));"></div>
+            <div class="card-body">
+                <div class="card-icon" style="background:rgba(6,182,212,0.15); color:var(--accent-cyan);">&#128200;</div>
+                <div class="card-title">Data Storage Mind Map &amp; Schemas</div>
+                <div class="card-desc">
+                    Interactive SVG mind map showing data flows from 3 storages to the backend:
+                    Keycloak (JWT, roles, RBAC), Jira (stories, epics, AC), PostgreSQL (d1/d2/d3/audit schemas).
+                    Full table definitions with column types, keys, and constraints.
+                </div>
+            </div>
+            <div class="card-footer">
+                <div class="card-tags">
+                    <span class="tag tag-mindmap">Mind Map</span>
+                    <span class="tag tag-schema">Schemas</span>
+                    <span class="tag tag-data">Data Flow</span>
+                </div>
+                <span class="card-arrow">&rarr;</span>
+            </div>
+        </a>
+
+    </div>
+
+    <!-- Footer -->
+    <footer>
+        <p>
+            <strong>ValueOps VirtusaX</strong> &mdash; Documentation Hub
+            &nbsp;&bull;&nbsp; Helio Modernisation Programme
+            &nbsp;&bull;&nbsp; Virtusa CTO Advisory
+        </p>
+        <p style="margin-top:8px;">
+            Repository: <a href="https://github.com/chillisurfer-one/ValueOps-VirtusaX">github.com/chillisurfer-one/ValueOps-VirtusaX</a>
+            &nbsp;&bull;&nbsp; Scope: MVP + R1 (Phases 1&ndash;5 &amp; 12)
+            &nbsp;&bull;&nbsp; Last updated: <span id="lastUpdated"></span>
+        </p>
+    </footer>
+
+    <script>
+        // ── Filter logic ──
+        function filterCards(category, btn) {
+            document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+            btn.classList.add('active');
+
+            document.querySelectorAll('.card').forEach(card => {
+                if (category === 'all') {
+                    card.setAttribute('data-hidden', 'false');
+                    card.style.display = '';
+                } else {
+                    const cats = card.getAttribute('data-category') || '';
+                    if (cats.includes(category)) {
+                        card.setAttribute('data-hidden', 'false');
+                        card.style.display = '';
+                    } else {
+                        card.setAttribute('data-hidden', 'true');
+                    }
+                }
+            });
+
+            // Update count
+            const visible = document.querySelectorAll('.card:not([data-hidden="true"])').length;
+            // Could update a counter if desired
+        }
+
+        // ── Set last-updated date ──
+        document.getElementById('lastUpdated').textContent = new Date().toLocaleDateString('en-GB', {
+            day: 'numeric', month: 'long', year: 'numeric'
+        });
+
+        // ── Update total docs count ──
+        document.getElementById('totalDocs').textContent = document.querySelectorAll('.card').length;
+    </script>
+
+</body>
+</html>
