@@ -1,0 +1,969 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ValueOps 3D Component Architecture</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1400px;
+            width: 100%;
+            background: white;
+            border-radius: 15px;
+            box-shadow: 0 30px 80px rgba(0,0,0,0.3);
+            overflow: hidden;
+        }
+
+        header {
+            background: linear-gradient(135deg, #2563EB 0%, #1e40af 100%);
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
+
+        header h1 {
+            font-size: 2em;
+            margin-bottom: 10px;
+        }
+
+        .content {
+            padding: 40px;
+        }
+
+        .architecture-view {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 30px;
+            margin-bottom: 40px;
+        }
+
+        .perspective-view {
+            perspective: 1000px;
+            height: 800px;
+            position: relative;
+            background: linear-gradient(180deg, #f0f4ff 0%, #f8fafc 100%);
+            border-radius: 10px;
+            border: 2px solid #e0e7ff;
+            overflow: hidden;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .layers {
+            width: 90%;
+            height: 90%;
+            position: relative;
+            transform-style: preserve-3d;
+        }
+
+        .layer {
+            position: absolute;
+            width: 100%;
+            border: 2px solid;
+            border-radius: 8px;
+            padding: 20px;
+            background: white;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 15px;
+            align-content: flex-start;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+            overflow-y: auto;
+            max-height: 100%;
+        }
+
+        .layer-1 { /* Frontend */
+            top: 0;
+            height: 15%;
+            background: linear-gradient(135deg, #dbeafe 0%, #e0e7ff 100%);
+            border-color: #2563EB;
+            z-index: 10;
+        }
+
+        .layer-2 { /* Backend */
+            top: 18%;
+            height: 32%;
+            background: linear-gradient(135deg, #dcfce7 0%, #f0fdf4 100%);
+            border-color: #059669;
+            z-index: 8;
+        }
+
+        .layer-3 { /* Integration */
+            top: 52%;
+            height: 15%;
+            background: linear-gradient(135deg, #fef3c7 0%, #fef9e7 100%);
+            border-color: #f59e0b;
+            z-index: 6;
+        }
+
+        .layer-4 { /* Data & Services */
+            top: 69%;
+            height: 28%;
+            background: linear-gradient(135deg, #ffe4e6 0%, #fef2f2 100%);
+            border-color: #DC2626;
+            z-index: 4;
+        }
+
+        .layer-label {
+            position: absolute;
+            font-weight: bold;
+            font-size: 14px;
+            background: white;
+            padding: 5px 10px;
+            border-radius: 4px;
+            top: -25px;
+            left: 10px;
+            border: 2px solid;
+            z-index: 20;
+        }
+
+        .layer-1 .layer-label { border-color: #2563EB; color: #2563EB; }
+        .layer-2 .layer-label { border-color: #059669; color: #059669; }
+        .layer-3 .layer-label { border-color: #f59e0b; color: #f59e0b; }
+        .layer-4 .layer-label { border-color: #DC2626; color: #DC2626; }
+
+        .component {
+            background: white;
+            border: 2px solid;
+            border-radius: 6px;
+            padding: 12px;
+            min-width: 150px;
+            max-width: 180px;
+            font-size: 12px;
+            display: flex;
+            flex-direction: column;
+            justify-content: flex-start;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+            transition: all 0.3s ease;
+        }
+
+        .component:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 8px 16px rgba(0,0,0,0.15);
+        }
+
+        .component-title {
+            font-weight: bold;
+            margin-bottom: 8px;
+            font-size: 11px;
+            word-break: break-word;
+        }
+
+        .component-desc {
+            font-size: 10px;
+            color: #666;
+            line-height: 1.3;
+        }
+
+        .component.frontend {
+            border-color: #2563EB;
+            background: #dbeafe;
+        }
+
+        .component.backend {
+            border-color: #059669;
+            background: #dcfce7;
+        }
+
+        .component.integration {
+            border-color: #f59e0b;
+            background: #fef3c7;
+        }
+
+        .component.data {
+            border-color: #DC2626;
+            background: #fee2e2;
+        }
+
+        .component.external {
+            border-color: #8b5cf6;
+            background: #ede9fe;
+        }
+
+        .component.auth {
+            border-color: #0891b2;
+            background: #cffafe;
+        }
+
+        .connection-guide {
+            position: absolute;
+            pointer-events: none;
+        }
+
+        svg {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+        }
+
+        .detailed-components {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 25px;
+            margin-top: 40px;
+        }
+
+        .section {
+            background: #f8f9fa;
+            border-left: 5px solid;
+            padding: 25px;
+            border-radius: 8px;
+        }
+
+        .section.frontend {
+            border-color: #2563EB;
+        }
+
+        .section.backend {
+            border-color: #059669;
+        }
+
+        .section.integration {
+            border-color: #f59e0b;
+        }
+
+        .section.data {
+            border-color: #DC2626;
+        }
+
+        .section.external {
+            border-color: #8b5cf6;
+        }
+
+        .section h3 {
+            margin-bottom: 15px;
+            font-size: 1.2em;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .section.frontend h3 { color: #2563EB; }
+        .section.backend h3 { color: #059669; }
+        .section.integration h3 { color: #f59e0b; }
+        .section.data h3 { color: #DC2626; }
+        .section.external h3 { color: #8b5cf6; }
+
+        .component-list {
+            list-style: none;
+        }
+
+        .component-list li {
+            padding: 10px;
+            margin-bottom: 8px;
+            background: white;
+            border-left: 3px solid;
+            border-radius: 3px;
+            font-size: 13px;
+        }
+
+        .section.frontend .component-list li { border-left-color: #2563EB; }
+        .section.backend .component-list li { border-left-color: #059669; }
+        .section.integration .component-list li { border-left-color: #f59e0b; }
+        .section.data .component-list li { border-left-color: #DC2626; }
+        .section.external .component-list li { border-left-color: #8b5cf6; }
+
+        .component-list strong {
+            display: block;
+            margin-bottom: 3px;
+        }
+
+        .data-flow {
+            background: white;
+            border: 2px dashed;
+            border-radius: 8px;
+            padding: 20px;
+            margin-top: 30px;
+        }
+
+        .data-flow h3 {
+            margin-bottom: 15px;
+            font-size: 1.2em;
+            color: #1e40af;
+        }
+
+        .flow-diagram {
+            font-family: monospace;
+            background: #f1f5f9;
+            padding: 15px;
+            border-radius: 5px;
+            overflow-x: auto;
+            font-size: 12px;
+            line-height: 1.6;
+        }
+
+        .legend {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin-top: 30px;
+            background: #f8f9fa;
+            padding: 20px;
+            border-radius: 8px;
+        }
+
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-size: 13px;
+        }
+
+        .legend-box {
+            width: 30px;
+            height: 30px;
+            border: 2px solid;
+            border-radius: 4px;
+            flex-shrink: 0;
+        }
+
+        footer {
+            background: #f8f9fa;
+            padding: 25px;
+            text-align: center;
+            border-top: 1px solid #e0e7ff;
+            color: #666;
+            font-size: 0.9em;
+        }
+
+        @media (max-width: 1024px) {
+            .perspective-view {
+                height: 600px;
+            }
+
+            .component {
+                min-width: 130px;
+                max-width: 160px;
+                font-size: 11px;
+            }
+        }
+
+        @media (max-width: 768px) {
+            header h1 {
+                font-size: 1.5em;
+            }
+
+            .content {
+                padding: 20px;
+            }
+
+            .perspective-view {
+                height: 400px;
+            }
+
+            .layer {
+                padding: 15px;
+                gap: 10px;
+            }
+
+            .component {
+                min-width: 120px;
+                max-width: 140px;
+                font-size: 10px;
+                padding: 10px;
+            }
+
+            .detailed-components {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>🏗️ ValueOps 3D Component Architecture</h1>
+            <p>Layered Component-Level Design | Frontend → Backend → Integration → Data</p>
+        </header>
+
+        <div class="content">
+            <!-- 3D Perspective View -->
+            <div class="perspective-view">
+                <div class="layers" id="architectureLayers">
+                    <!-- LAYER 1: FRONTEND -->
+                    <div class="layer layer-1">
+                        <div class="layer-label">🎨 FRONTEND LAYER</div>
+                        <div class="component frontend">
+                            <div class="component-title">React App</div>
+                            <div class="component-desc">SPA shell, routing, state</div>
+                        </div>
+                        <div class="component frontend">
+                            <div class="component-title">SpecAuthoringPanel</div>
+                            <div class="component-desc">Intent spec editor (D1A)</div>
+                        </div>
+                        <div class="component frontend">
+                            <div class="component-title">SpecViewer</div>
+                            <div class="component-desc">Sign-off UI (LE approval)</div>
+                        </div>
+                        <div class="component frontend">
+                            <div class="component-title">Persona Surfaces</div>
+                            <div class="component-desc">PM, EA, LA, SA, LE, Risk, Ethics, Compliance</div>
+                        </div>
+                        <div class="component frontend">
+                            <div class="component-title">API Client</div>
+                            <div class="component-desc">HTTP, token refresh, interceptors</div>
+                        </div>
+                    </div>
+
+                    <!-- LAYER 2: BACKEND (NestJS Domains) -->
+                    <div class="layer layer-2">
+                        <div class="layer-label">⚙️ BACKEND LAYER (NestJS)</div>
+
+                        <!-- D1 Domain -->
+                        <div class="component backend">
+                            <div class="component-title">D1: Authoring</div>
+                            <div class="component-desc">D1A: ADRs, specs, models, artefacts</div>
+                        </div>
+                        <div class="component backend">
+                            <div class="component-title">D1: Policies</div>
+                            <div class="component-desc">D1B: Policy CRUD, linting</div>
+                        </div>
+                        <div class="component backend">
+                            <div class="component-title">D1: Governance</div>
+                            <div class="component-desc">D1C: Approval workflow chain</div>
+                        </div>
+                        <div class="component backend">
+                            <div class="component-title">D1: Conformance</div>
+                            <div class="component-desc">D1D: Drift detection engine</div>
+                        </div>
+                        <div class="component backend">
+                            <div class="component-title">D1: Metadata</div>
+                            <div class="component-desc">D1E: Taxonomy, tagging</div>
+                        </div>
+                        <div class="component backend">
+                            <div class="component-title">D1: Tooling</div>
+                            <div class="component-desc">D1F: Scaffolding, CI hooks</div>
+                        </div>
+
+                        <!-- D2 Stub -->
+                        <div class="component backend">
+                            <div class="component-title">D2: Spec Capture</div>
+                            <div class="component-desc">D2 stub: Problem → Epics/Stories</div>
+                        </div>
+
+                        <!-- D3 Domain -->
+                        <div class="component backend">
+                            <div class="component-title">D3: Risk</div>
+                            <div class="component-desc">D3A-B: Risk taxonomy, scoring</div>
+                        </div>
+                        <div class="component backend">
+                            <div class="component-title">D3: Ethics</div>
+                            <div class="component-desc">D3C: Ethics policies, flags</div>
+                        </div>
+                        <div class="component backend">
+                            <div class="component-title">D3: Privacy</div>
+                            <div class="component-desc">D3H: Privacy constraints, DPIA</div>
+                        </div>
+
+                        <!-- Core Services -->
+                        <div class="component backend">
+                            <div class="component-title">Auth Service</div>
+                            <div class="component-desc">Keycloak integration, JWT validation</div>
+                        </div>
+                        <div class="component backend">
+                            <div class="component-title">Personas Projection</div>
+                            <div class="component-desc">Surfacing layer (server-side enforcement)</div>
+                        </div>
+                    </div>
+
+                    <!-- LAYER 3: INTEGRATION & EVENT -->
+                    <div class="layer layer-3">
+                        <div class="layer-label">🔄 INTEGRATION LAYER</div>
+                        <div class="component integration">
+                            <div class="component-title">Event Bus</div>
+                            <div class="component-desc">Redpanda (messagebus)</div>
+                        </div>
+                        <div class="component integration">
+                            <div class="component-title">Event Emitters</div>
+                            <div class="component-desc">D1-D3 domain event publishers</div>
+                        </div>
+                        <div class="component integration">
+                            <div class="component-title">Audit Emitter</div>
+                            <div class="component-desc">Dual-write audit events</div>
+                        </div>
+                        <div class="component integration">
+                            <div class="component-title">OPA Service</div>
+                            <div class="component-desc">Policy runtime evaluation</div>
+                        </div>
+                        <div class="component integration">
+                            <div class="component-title">Conformance Engine</div>
+                            <div class="component-desc">Reads STD, governs TGT</div>
+                        </div>
+                    </div>
+
+                    <!-- LAYER 4: DATA & INFRASTRUCTURE -->
+                    <div class="layer layer-4">
+                        <div class="layer-label">💾 DATA & INFRASTRUCTURE LAYER</div>
+                        <div class="component data">
+                            <div class="component-title">PostgreSQL</div>
+                            <div class="component-desc">Schemas: d1, d2, d3, audit</div>
+                        </div>
+                        <div class="component data">
+                            <div class="component-title">Prisma ORM</div>
+                            <div class="component-desc">Migrations, schema management</div>
+                        </div>
+                        <div class="component auth">
+                            <div class="component-title">Keycloak</div>
+                            <div class="component-desc">Realm: helio (8 roles)</div>
+                        </div>
+                        <div class="component data">
+                            <div class="component-title">MinIO</div>
+                            <div class="component-desc">Artefact storage (S3-compatible)</div>
+                        </div>
+                        <div class="component data">
+                            <div class="component-title">Weaviate</div>
+                            <div class="component-desc">Semantic store (D1G)</div>
+                        </div>
+                        <div class="component data">
+                            <div class="component-title">OPA (CLI)</div>
+                            <div class="component-desc">CI/CD policy checks</div>
+                        </div>
+                        <div class="component data">
+                            <div class="component-title">Ollama</div>
+                            <div class="component-desc">Self-hosted AI (D1G)</div>
+                        </div>
+                        <div class="component external">
+                            <div class="component-title">GitHub</div>
+                            <div class="component-desc">Source, Actions, PRs</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Detailed Component Breakdown -->
+            <div class="detailed-components">
+                <!-- FRONTEND SECTION -->
+                <div class="section frontend">
+                    <h3>🎨 Frontend Layer (React)</h3>
+                    <ul class="component-list">
+                        <li>
+                            <strong>React Application Shell</strong>
+                            Entry point, routing, global state management, theme provider
+                        </li>
+                        <li>
+                            <strong>Persona-Specific Surfaces</strong>
+                            PM Dashboard · EA Canvas · LA Editor · SA Studio · LE Handover · Risk Dashboard · Ethics Review · Compliance Attestation
+                        </li>
+                        <li>
+                            <strong>SpecAuthoringPanel (D1A)</strong>
+                            Intent spec editor with real-time linting, outcome validation, ADR reference mapping
+                        </li>
+                        <li>
+                            <strong>SpecViewer (D1A)</strong>
+                            Spec review & sign-off UI (LE approval action → audit event)
+                        </li>
+                        <li>
+                            <strong>API Client Library</strong>
+                            TypeScript HTTP client, token management, error handling, interceptors
+                        </li>
+                        <li>
+                            <strong>Component Library</strong>
+                            Reusable design-system components (WCAG 2.1 AA compliant)
+                        </li>
+                    </ul>
+                </div>
+
+                <!-- BACKEND SECTION -->
+                <div class="section backend">
+                    <h3>⚙️ Backend Layer (NestJS)</h3>
+                    <ul class="component-list">
+                        <li>
+                            <strong>D1 Module: Authoring (D1A)</strong>
+                            ADR CRUD, model versioning, spec storage, artefact metadata
+                        </li>
+                        <li>
+                            <strong>D1 Module: Policies (D1B)</strong>
+                            Policy CRUD, OPA integration, linter rules, control templates
+                        </li>
+                        <li>
+                            <strong>D1 Module: Governance (D1C)</strong>
+                            Approval workflow orchestrator, chain validation (SA→LA→EA), handover gate
+                        </li>
+                        <li>
+                            <strong>D1 Module: Conformance (D1D)</strong>
+                            Drift detector, ADR→implementation tracer, conformance dashboard
+                        </li>
+                        <li>
+                            <strong>D1 Module: Metadata (D1E)</strong>
+                            Taxonomy service, ADR tagging engine, policy-selector mapper
+                        </li>
+                        <li>
+                            <strong>D1 Module: Tooling (D1F)</strong>
+                            Scaffold generator, GitHub Actions integration, CI gate orchestrator
+                        </li>
+                        <li>
+                            <strong>D2 Module: Spec Capture</strong>
+                            Problem-to-spec transformer (stub), Jira sync, epic/story generator
+                        </li>
+                        <li>
+                            <strong>D3 Module: Risk</strong>
+                            Risk taxonomy CRUD, propagation engine, waiver workflow, score calculator
+                        </li>
+                        <li>
+                            <strong>D3 Module: Ethics</strong>
+                            Ethics policy binding, flag generator, explainability service
+                        </li>
+                        <li>
+                            <strong>D3 Module: Privacy</strong>
+                            Privacy constraint validator, consent tracker, DPIA generator
+                        </li>
+                    </ul>
+                </div>
+
+                <!-- INTEGRATION SECTION -->
+                <div class="section integration">
+                    <h3>🔄 Integration Layer</h3>
+                    <ul class="component-list">
+                        <li>
+                            <strong>Event Broker (Redpanda)</strong>
+                            Topics: valueops.d1.*, valueops.d3.*, audit topic. Event schema versioning.
+                        </li>
+                        <li>
+                            <strong>Event Emitters</strong>
+                            D1-D3 domain services publish events on state changes (ADR approved, risk waived, etc.)
+                        </li>
+                        <li>
+                            <strong>Audit Trail Emitter</strong>
+                            Dual-write handler: (1) artefact state change + (2) audit event append
+                        </li>
+                        <li>
+                            <strong>OPA Service (Runtime)</strong>
+                            Long-running OPA instance for in-app policy evaluation, decision logging
+                        </li>
+                        <li>
+                            <strong>Conformance Engine</strong>
+                            Reads STD catalogue, applies policies/controls to TGT via CI (GitHub Actions)
+                        </li>
+                        <li>
+                            <strong>GitHub Actions Orchestrator</strong>
+                            Rule-validation pipeline trigger, OPA CLI executor, audit event emitter
+                        </li>
+                    </ul>
+                </div>
+
+                <!-- DATA & SERVICES SECTION -->
+                <div class="section data">
+                    <h3>💾 Data & Infrastructure Layer</h3>
+                    <ul class="component-list">
+                        <li>
+                            <strong>PostgreSQL (Relational)</strong>
+                            Schemas: d1 (authoring), d2 (spec capture), d3 (risk/ethics), audit (append-only)
+                        </li>
+                        <li>
+                            <strong>Prisma ORM</strong>
+                            Schema definitions, reversible migrations, type safety, seed scripts
+                        </li>
+                        <li>
+                            <strong>Keycloak (Auth)</strong>
+                            Realm: helio. Roles: PM, EA, LA, SA, LE, Risk Officer, Ethics Reviewer, Compliance Lead
+                        </li>
+                        <li>
+                            <strong>MinIO (Object Store)</strong>
+                            Artefact versioning, backup, PlantUML source storage
+                        </li>
+                        <li>
+                            <strong>Weaviate (Vector Store)</strong>
+                            Semantic embeddings for D1G (contextual insight surfacing, pattern matching)
+                        </li>
+                        <li>
+                            <strong>Ollama (AI Runtime)</strong>
+                            Self-hosted, pinned model (e.g. Mistral). D1G assistance only (no external calls).
+                        </li>
+                        <li>
+                            <strong>OPA CLI (Policy Engine)</strong>
+                            Runs in CI/CD runners. Executes Rego policies, emits evaluation results.
+                        </li>
+                        <li>
+                            <strong>tfsec, ArchUnit, Conftest</strong>
+                            Build-time controls (IaC, code, config validation)
+                        </li>
+                    </ul>
+                </div>
+
+                <!-- EXTERNAL SYSTEMS -->
+                <div class="section external">
+                    <h3>🔗 External Systems & References</h3>
+                    <ul class="component-list">
+                        <li>
+                            <strong>GitHub (Source)</strong>
+                            APP repo (this project), STD repo (catalogue), TGT repo (workload)
+                        </li>
+                        <li>
+                            <strong>GitHub Actions</strong>
+                            CI/CD pipelines, policy evaluation, control checks, audit emission
+                        </li>
+                        <li>
+                            <strong>Jira (Ticketing)</strong>
+                            Epic/story tracking, D1 D2 integration (spec ↔ story link)
+                        </li>
+                        <li>
+                            <strong>STD Repo (Standards Canon)</strong>
+                            ADRs, policies, controls, frozen L1–L3 catalogue (read-only for APP)
+                        </li>
+                        <li>
+                            <strong>TGT Repo (Banking Target)</strong>
+                            Governed workload. APP conformance engine checks against policies.
+                        </li>
+                        <li>
+                            <strong>SRC Repo (Bank-Demo)</strong>
+                            Source monolith observation (discovery input, never modified)
+                        </li>
+                    </ul>
+                </div>
+            </div>
+
+            <!-- Data Flows -->
+            <div class="data-flow">
+                <h3>📊 Key Data Flows</h3>
+                <div class="flow-diagram">
+<strong>1. ADR Authoring & Approval Flow (D1C):</strong>
+   SA drafts ADR (Frontend)
+   → Backend D1:Governance validates
+   → Event: adr-drafted (Redpanda)
+   ↓
+   LA reviews & recommends (UX action → dual-write)
+   → Artefact state: recommend_by_LA (Postgres d1)
+   → Audit event: adr-recommended (Postgres audit + Redpanda)
+   ↓
+   EA approves (UX action → dual-write)
+   → Artefact state: approved_by_EA (Postgres d1)
+   → Audit event: adr-approved (Postgres audit + Redpanda)
+   → GitHub Actions triggered
+   → OPA evaluates against STD policies
+   → TGT repo conformance checked
+   ↓
+   LE accepts at handover
+   → Builds conform to approved ADR (or raises variation)
+
+<strong>2. Intent Spec Workflow (SDD v0, D1A):</strong>
+   SA creates spec (SpecAuthoringPanel)
+   → Real-time linter (frontend + backend)
+   → Spec status: drafted (Postgres d1)
+   ↓
+   Spec linter validates (no mechanism, outcome-shaped acceptance)
+   → Status: valid (gates handover if all required sections present)
+   ↓
+   LE sign-off (SpecViewer UX)
+   → Dual-write: status: signed_off + baselinedAt + baselineVersion
+   → Audit event: spec-signed-off (Postgres audit + Redpanda)
+   → Governance gate: ADR coverage resolved (no gap)
+   ↓
+   Build phase: LE accepts handover or raises variation
+   → Variation → re-sign (Postgres d1) + LA approval
+
+<strong>3. Conformance & Drift Detection (D1D):</strong>
+   TGT repo commits code
+   → GitHub Actions triggered (push/PR)
+   → Rule-validation pipeline fetches applicable policies from STD
+   → OPA evaluates design artefacts (ADRs, models, policies) via CLI
+   → tfsec/ArchUnit/Conftest run build checks
+   → Conformance engine compares TGT vs reference architecture (from ADR)
+   → Drift detected → flagged + traced to governing ADR
+   → Audit event: control-check pass/fail/waiver (Postgres audit + Redpanda)
+   → Merge blocked if critical controls fail (or human waiver with rationale)
+
+<strong>4. Risk & Ethics Governance (D3):</strong>
+   Risk Officer flags risk (D3:Risk service)
+   → Risk event: risk-flagged (Redpanda)
+   → Risk Waiver action (UX) → dual-write
+   → Artefact: risk waiver recorded + rationale mandatory
+   → Audit event: risk-waived (Postgres audit + Redpanda)
+   ↓
+   Ethics Reviewer reviews ethics flag
+   → Ethics event: ethics-flagged (Redpanda)
+   → Compliance Lead attests (UX action)
+   → Audit event: ethics-attested (Postgres audit + Redpanda)
+
+<strong>5. Persona-Scoped Surfacing (Server-Side Projection):</strong>
+   User logs in via Keycloak (helio realm)
+   → JWT token carries persona role
+   → Backend auth service verifies (JWT + Keycloak introspect)
+   → Request hits personas/projection layer
+   → Projection filters DTO fields (policy code, ADR metadata excluded for PM/Risk/Ethics/Compliance)
+   → Frontend receives filtered response only
+   → Governance test: PM token cannot retrieve ADR metadata → test fails if breached
+                </div>
+            </div>
+
+            <!-- Legend -->
+            <div class="legend">
+                <div class="legend-item">
+                    <div class="legend-box" style="background: #dbeafe; border-color: #2563EB;"></div>
+                    <span><strong>Frontend:</strong> React, UI components, persona surfaces</span>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-box" style="background: #dcfce7; border-color: #059669;"></div>
+                    <span><strong>Backend:</strong> NestJS modules (D1–D3), services, business logic</span>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-box" style="background: #fef3c7; border-color: #f59e0b;"></div>
+                    <span><strong>Integration:</strong> Events, Redpanda, OPA, conformance engine</span>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-box" style="background: #fee2e2; border-color: #DC2626;"></div>
+                    <span><strong>Data:</strong> PostgreSQL, Prisma, vector store, object store</span>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-box" style="background: #cffafe; border-color: #0891b2;"></div>
+                    <span><strong>Auth:</strong> Keycloak, JWT, RBAC, persona roles</span>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-box" style="background: #ede9fe; border-color: #8b5cf6;"></div>
+                    <span><strong>External:</strong> GitHub, Jira, STD, TGT, SRC repositories</span>
+                </div>
+            </div>
+
+            <!-- Communication Patterns -->
+            <div style="margin-top: 30px; background: #f8f9fa; padding: 25px; border-radius: 8px; border-left: 5px solid #2563EB;">
+                <h3 style="color: #2563EB; margin-bottom: 15px;">🔌 Communication Patterns</h3>
+                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 20px;">
+                    <div>
+                        <strong>Synchronous (HTTP/REST):</strong>
+                        <ul style="margin-top: 10px; margin-left: 20px; font-size: 13px;">
+                            <li>Frontend ↔ Backend API (JWT auth)</li>
+                            <li>Backend ↔ Keycloak (token validation)</li>
+                            <li>Backend ↔ OPA (policy decisions)</li>
+                            <li>Backend ↔ Weaviate (semantic search)</li>
+                        </ul>
+                    </div>
+                    <div>
+                        <strong>Asynchronous (Events):</strong>
+                        <ul style="margin-top: 10px; margin-left: 20px; font-size: 13px;">
+                            <li>D1–D3 services publish domain events</li>
+                            <li>Audit emitter publishes to audit topic</li>
+                            <li>Cross-domain event consumers</li>
+                            <li>CI/CD pipeline event subscriptions</li>
+                        </ul>
+                    </div>
+                    <div>
+                        <strong>Database (Direct):</strong>
+                        <ul style="margin-top: 10px; margin-left: 20px; font-size: 13px;">
+                            <li>NestJS services via Prisma ORM</li>
+                            <li>Schema isolation (d1–d3 + audit)</li>
+                            <li>No cross-schema FKs (event-based)</li>
+                            <li>Audit trail append-only (INSERT only)</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Deployment Topology -->
+            <div style="margin-top: 30px; background: #f8f9fa; padding: 25px; border-radius: 8px; border-left: 5px solid #f59e0b;">
+                <h3 style="color: #f59e0b; margin-bottom: 15px;">🚀 Deployment Topology (Docker Compose)</h3>
+                <div style="font-family: monospace; background: white; padding: 15px; border-radius: 5px; border: 1px solid #fee2e2; font-size: 12px; overflow-x: auto;">
+<pre>services:
+  # Frontend
+  app-frontend:
+    image: node:22-alpine
+    ports: [3000:3000]
+    env: REACT_APP_API_URL=http://localhost:3001
+
+  # Backend (NestJS)
+  app-backend:
+    image: node:22-alpine
+    ports: [3001:3001]
+    depends_on: [postgres, keycloak, ollama, weaviate, redpanda, opa]
+
+  # Database
+  postgres:
+    image: postgres:15-alpine
+    volumes: [postgres_data:/var/lib/postgresql/data]
+    env: POSTGRES_DB=valueops
+    ports: [5432:5432]
+
+  # Auth
+  keycloak:
+    image: quay.io/keycloak/keycloak:latest
+    ports: [8080:8080]
+    env: KEYCLOAK_ADMIN=admin
+
+  # Event Broker
+  redpanda:
+    image: docker.redpanda.com/redpanda:latest
+    ports: [9092:9092, 8081:8081]
+    volumes: [redpanda_data:/var/lib/redpanda/data]
+
+  # Policy Engine
+  opa:
+    image: openpolicyagent/opa:latest
+    ports: [8181:8181]
+    command: run --server
+
+  # Vector Store (D1G)
+  weaviate:
+    image: semitechnologies/weaviate:latest
+    ports: [8082:8080]
+    env: QUERY_DEFAULTS_LIMIT=25
+
+  # AI Runtime (D1G)
+  ollama:
+    image: ollama/ollama:latest
+    ports: [11434:11434]
+    volumes: [ollama_data:/root/.ollama]
+    platform: linux/amd64  # Apple Silicon compatibility
+
+  # Object Store
+  minio:
+    image: minio/minio:latest
+    ports: [9000:9000, 9001:9001]
+    volumes: [minio_data:/minio]
+
+volumes:
+  postgres_data:
+  redpanda_data:
+  ollama_data:
+  minio_data:</pre>
+                </div>
+            </div>
+        </div>
+
+        <footer>
+            <p><strong>ValueOps 3D Component Architecture</strong></p>
+            <p>MVP + R1 (Phases 1–5 & 12) | NestJS + React + PostgreSQL + Redpanda + Keycloak</p>
+            <p>Generated: 2026-07-21 | Helio Modernisation Programme</p>
+        </footer>
+    </div>
+
+    <script>
+        // Add hover effect to layers
+        document.querySelectorAll('.layer').forEach(layer => {
+            layer.addEventListener('mouseenter', function() {
+                this.style.boxShadow = '0 8px 25px rgba(0,0,0,0.15)';
+            });
+            layer.addEventListener('mouseleave', function() {
+                this.style.boxShadow = '0 4px 15px rgba(0,0,0,0.1)';
+            });
+        });
+
+        // Smooth scroll for anchors
+        document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+            anchor.addEventListener('click', function (e) {
+                e.preventDefault();
+                const target = document.querySelector(this.getAttribute('href'));
+                if (target) {
+                    target.scrollIntoView({ behavior: 'smooth' });
+                }
+            });
+        });
+    </script>
+</body>
+</html>

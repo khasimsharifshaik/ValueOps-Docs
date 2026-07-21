@@ -1,0 +1,1135 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ValueOps — Data Storage Mind Map & Schema Flows</title>
+    <style>
+        :root {
+            --keycloak-primary: #0891b2;
+            --keycloak-light: #cffafe;
+            --keycloak-dark: #065f73;
+            --jira-primary: #2563EB;
+            --jira-light: #dbeafe;
+            --jira-dark: #1e40af;
+            --pg-primary: #336791;
+            --pg-light: #e0e7ff;
+            --pg-dark: #1e3a5f;
+            --backend-primary: #059669;
+            --backend-light: #d1fae5;
+            --backend-dark: #065f46;
+            --audit-primary: #DC2626;
+            --audit-light: #fee2e2;
+            --redpanda-primary: #f59e0b;
+            --redpanda-light: #fef3c7;
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: #0f172a;
+            color: #e2e8f0;
+            min-height: 100vh;
+            overflow-x: hidden;
+        }
+
+        header {
+            background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);
+            padding: 30px 40px;
+            border-bottom: 2px solid #334155;
+            text-align: center;
+        }
+
+        header h1 {
+            font-size: 2em;
+            color: #f1f5f9;
+            margin-bottom: 8px;
+        }
+
+        header p {
+            color: #94a3b8;
+            font-size: 1.05em;
+        }
+
+        .content {
+            padding: 40px;
+            max-width: 1600px;
+            margin: 0 auto;
+        }
+
+        /* ── Legend ── */
+        .legend {
+            display: flex;
+            gap: 25px;
+            justify-content: center;
+            flex-wrap: wrap;
+            margin-bottom: 40px;
+            background: #1e293b;
+            padding: 18px 30px;
+            border-radius: 10px;
+            border: 1px solid #334155;
+        }
+
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 13px;
+        }
+
+        .legend-dot {
+            width: 14px;
+            height: 14px;
+            border-radius: 50%;
+            border: 2px solid;
+        }
+
+        /* ── Central mind-map SVG ── */
+        .mindmap-wrap {
+            position: relative;
+            width: 100%;
+            min-height: 720px;
+            background: radial-gradient(ellipse at center, #1e293b 0%, #0f172a 70%);
+            border-radius: 12px;
+            border: 1px solid #334155;
+            margin-bottom: 50px;
+            overflow: visible;
+        }
+
+        .mindmap-wrap svg {
+            width: 100%;
+            height: 720px;
+        }
+
+        /* ── Section cards ── */
+        .section-title {
+            font-size: 1.6em;
+            margin-bottom: 20px;
+            padding-bottom: 10px;
+            border-bottom: 2px solid #334155;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .storage-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(480px, 1fr));
+            gap: 30px;
+            margin-bottom: 50px;
+        }
+
+        .storage-card {
+            background: #1e293b;
+            border: 2px solid;
+            border-radius: 12px;
+            overflow: hidden;
+        }
+
+        .storage-card .card-header {
+            padding: 18px 22px;
+            font-weight: 700;
+            font-size: 1.15em;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .storage-card .card-body {
+            padding: 0 22px 22px;
+        }
+
+        .card-keycloak { border-color: var(--keycloak-primary); }
+        .card-keycloak .card-header { background: var(--keycloak-dark); color: var(--keycloak-light); }
+
+        .card-jira { border-color: var(--jira-primary); }
+        .card-jira .card-header { background: var(--jira-dark); color: var(--jira-light); }
+
+        .card-pg { border-color: var(--pg-primary); }
+        .card-pg .card-header { background: var(--pg-dark); color: var(--pg-light); }
+
+        .card-backend { border-color: var(--backend-primary); }
+        .card-backend .card-header { background: var(--backend-dark); color: var(--backend-light); }
+
+        /* ── Schema tables ── */
+        .schema-block {
+            margin-top: 16px;
+        }
+
+        .schema-block h4 {
+            font-size: 0.95em;
+            margin-bottom: 8px;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 12px;
+            margin-bottom: 14px;
+        }
+
+        table th {
+            text-align: left;
+            padding: 8px 10px;
+            background: #334155;
+            color: #cbd5e1;
+            font-weight: 600;
+            border: 1px solid #475569;
+        }
+
+        table td {
+            padding: 6px 10px;
+            border: 1px solid #334155;
+            color: #e2e8f0;
+        }
+
+        table tr:nth-child(even) td {
+            background: rgba(51,65,85,0.3);
+        }
+
+        code {
+            background: #334155;
+            padding: 1px 5px;
+            border-radius: 3px;
+            font-size: 11px;
+            color: #67e8f9;
+        }
+
+        .pk { color: #fbbf24; font-weight: 700; }
+        .fk { color: #a78bfa; font-style: italic; }
+        .req { color: #f87171; }
+        .col-name { color: #67e8f9; font-weight: 600; }
+
+        /* ── Flow arrows ── */
+        .flow-section {
+            margin-bottom: 50px;
+        }
+
+        .flow-row {
+            display: flex;
+            align-items: stretch;
+            gap: 0;
+            margin-bottom: 18px;
+            font-size: 13px;
+        }
+
+        .flow-source {
+            min-width: 180px;
+            padding: 12px 16px;
+            border-radius: 8px 0 0 8px;
+            font-weight: 700;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .flow-arrow {
+            width: 60px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: #334155;
+            color: #94a3b8;
+            font-size: 20px;
+            position: relative;
+        }
+
+        .flow-arrow::after {
+            content: '';
+            position: absolute;
+            right: -8px;
+            top: 50%;
+            transform: translateY(-50%);
+            border: 8px solid transparent;
+            border-left: 8px solid #334155;
+        }
+
+        .flow-data {
+            flex: 1;
+            padding: 12px 16px;
+            background: #1e293b;
+            border: 1px solid #475569;
+            border-radius: 0 8px 8px 0;
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+
+        .flow-data strong {
+            color: #f1f5f9;
+        }
+
+        .flow-data .fields {
+            color: #94a3b8;
+            font-size: 12px;
+        }
+
+        .flow-kc .flow-source { background: var(--keycloak-dark); color: var(--keycloak-light); }
+        .flow-jira .flow-source { background: var(--jira-dark); color: var(--jira-light); }
+        .flow-pg .flow-source { background: var(--pg-dark); color: var(--pg-light); }
+        .flow-be .flow-source { background: var(--backend-dark); color: var(--backend-light); }
+
+        .badge {
+            display: inline-block;
+            padding: 2px 8px;
+            border-radius: 10px;
+            font-size: 10px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .badge-sync { background: #065f46; color: #6ee7b7; }
+        .badge-async { background: #78350f; color: #fcd34d; }
+        .badge-read { background: #1e3a5f; color: #93c5fd; }
+        .badge-write { background: #7f1d1d; color: #fca5a5; }
+
+        .divider {
+            border: 0;
+            border-top: 1px solid #334155;
+            margin: 40px 0;
+        }
+
+        .note {
+            background: #1e293b;
+            border-left: 4px solid #f59e0b;
+            padding: 14px 18px;
+            border-radius: 0 8px 8px 0;
+            margin: 20px 0;
+            font-size: 13px;
+            color: #fcd34d;
+        }
+
+        footer {
+            text-align: center;
+            padding: 30px;
+            color: #64748b;
+            font-size: 0.85em;
+            border-top: 1px solid #334155;
+        }
+
+        @media (max-width: 768px) {
+            .storage-grid { grid-template-columns: 1fr; }
+            .flow-row { flex-direction: column; }
+            .flow-source { border-radius: 8px 8px 0 0; min-width: unset; }
+            .flow-arrow { width: 100%; height: 30px; }
+            .flow-arrow::after { display: none; }
+            .flow-data { border-radius: 0 0 8px 8px; }
+            .content { padding: 20px; }
+        }
+    </style>
+</head>
+<body>
+
+<header>
+    <h1>ValueOps — Data Storage Mind Map</h1>
+    <p>Table schemas &amp; data flows: Keycloak | Jira | PostgreSQL &rarr; NestJS Backend</p>
+</header>
+
+<div class="content">
+
+    <!-- Legend -->
+    <div class="legend">
+        <div class="legend-item"><div class="legend-dot" style="background:var(--keycloak-light);border-color:var(--keycloak-primary);"></div> Keycloak (Auth &amp; Identity)</div>
+        <div class="legend-item"><div class="legend-dot" style="background:var(--jira-light);border-color:var(--jira-primary);"></div> Jira (Delivery Tracking)</div>
+        <div class="legend-item"><div class="legend-dot" style="background:var(--pg-light);border-color:var(--pg-primary);"></div> PostgreSQL (Domain Data)</div>
+        <div class="legend-item"><div class="legend-dot" style="background:var(--backend-light);border-color:var(--backend-primary);"></div> NestJS Backend</div>
+        <div class="legend-item"><div class="legend-dot" style="background:var(--redpanda-light);border-color:var(--redpanda-primary);"></div> Redpanda (Events)</div>
+        <div class="legend-item"><div class="legend-dot" style="background:var(--audit-light);border-color:var(--audit-primary);"></div> Audit Trail</div>
+    </div>
+
+    <!-- ════════════════════════════════════════════════════════
+         INTERACTIVE MIND MAP (SVG)
+         ════════════════════════════════════════════════════════ -->
+    <div class="mindmap-wrap">
+        <svg viewBox="0 0 1400 720" xmlns="http://www.w3.org/2000/svg">
+            <defs>
+                <marker id="arrow-kc" viewBox="0 0 10 10" refX="10" refY="5" markerWidth="6" markerHeight="6" orient="auto"><path d="M 0 0 L 10 5 L 0 10 z" fill="#0891b2"/></marker>
+                <marker id="arrow-jira" viewBox="0 0 10 10" refX="10" refY="5" markerWidth="6" markerHeight="6" orient="auto"><path d="M 0 0 L 10 5 L 0 10 z" fill="#2563EB"/></marker>
+                <marker id="arrow-pg" viewBox="0 0 10 10" refX="10" refY="5" markerWidth="6" markerHeight="6" orient="auto"><path d="M 0 0 L 10 5 L 0 10 z" fill="#336791"/></marker>
+                <marker id="arrow-be" viewBox="0 0 10 10" refX="10" refY="5" markerWidth="6" markerHeight="6" orient="auto"><path d="M 0 0 L 10 5 L 0 10 z" fill="#059669"/></marker>
+                <marker id="arrow-event" viewBox="0 0 10 10" refX="10" refY="5" markerWidth="6" markerHeight="6" orient="auto"><path d="M 0 0 L 10 5 L 0 10 z" fill="#f59e0b"/></marker>
+                <marker id="arrow-audit" viewBox="0 0 10 10" refX="10" refY="5" markerWidth="6" markerHeight="6" orient="auto"><path d="M 0 0 L 10 5 L 0 10 z" fill="#DC2626"/></marker>
+
+                <filter id="glow-kc"><feDropShadow dx="0" dy="0" stdDeviation="4" flood-color="#0891b2" flood-opacity="0.5"/></filter>
+                <filter id="glow-jira"><feDropShadow dx="0" dy="0" stdDeviation="4" flood-color="#2563EB" flood-opacity="0.5"/></filter>
+                <filter id="glow-pg"><feDropShadow dx="0" dy="0" stdDeviation="4" flood-color="#336791" flood-opacity="0.5"/></filter>
+                <filter id="glow-be"><feDropShadow dx="0" dy="0" stdDeviation="4" flood-color="#059669" flood-opacity="0.5"/></filter>
+                <filter id="glow-event"><feDropShadow dx="0" dy="0" stdDeviation="4" flood-color="#f59e0b" flood-opacity="0.4"/></filter>
+                <filter id="glow-audit"><feDropShadow dx="0" dy="0" stdDeviation="4" flood-color="#DC2626" flood-opacity="0.5"/></filter>
+            </defs>
+
+            <!-- ── Connection lines (drawn first, behind nodes) ── -->
+
+            <!-- Keycloak → Backend -->
+            <path d="M 230 160 C 360 160, 480 280, 600 300" stroke="#0891b2" stroke-width="2.5" fill="none" stroke-dasharray="8,4" marker-end="url(#arrow-kc)"/>
+            <path d="M 230 200 C 360 220, 480 310, 600 330" stroke="#0891b2" stroke-width="2" fill="none" opacity="0.5" marker-end="url(#arrow-kc)"/>
+            <path d="M 230 240 C 340 270, 480 340, 600 360" stroke="#0891b2" stroke-width="2" fill="none" opacity="0.5" marker-end="url(#arrow-kc)"/>
+
+            <!-- Jira → Backend -->
+            <path d="M 230 440 C 360 440, 480 360, 600 360" stroke="#2563EB" stroke-width="2.5" fill="none" stroke-dasharray="8,4" marker-end="url(#arrow-jira)"/>
+            <path d="M 230 480 C 360 460, 480 380, 600 380" stroke="#2563EB" stroke-width="2" fill="none" opacity="0.5" marker-end="url(#arrow-jira)"/>
+            <path d="M 230 520 C 340 500, 480 400, 600 400" stroke="#2563EB" stroke-width="2" fill="none" opacity="0.5" marker-end="url(#arrow-jira)"/>
+
+            <!-- Backend → PostgreSQL -->
+            <path d="M 900 300 C 1020 280, 1100 160, 1180 160" stroke="#336791" stroke-width="2.5" fill="none" stroke-dasharray="8,4" marker-end="url(#arrow-pg)"/>
+            <path d="M 900 330 C 1020 310, 1100 200, 1180 200" stroke="#336791" stroke-width="2" fill="none" opacity="0.5" marker-end="url(#arrow-pg)"/>
+            <path d="M 900 360 C 1020 340, 1100 240, 1180 240" stroke="#336791" stroke-width="2" fill="none" opacity="0.5" marker-end="url(#arrow-pg)"/>
+            <path d="M 900 390 C 1020 410, 1100 480, 1180 480" stroke="#336791" stroke-width="2" fill="none" opacity="0.5" marker-end="url(#arrow-pg)"/>
+
+            <!-- Backend → Redpanda (events) -->
+            <path d="M 750 430 C 750 500, 750 540, 750 570" stroke="#f59e0b" stroke-width="2.5" fill="none" marker-end="url(#arrow-event)"/>
+
+            <!-- Backend → Audit (special) -->
+            <path d="M 900 400 C 1020 460, 1100 530, 1180 540" stroke="#DC2626" stroke-width="2.5" fill="none" stroke-dasharray="5,3" marker-end="url(#arrow-audit)"/>
+
+            <!-- ── KEYCLOAK NODE ── -->
+            <g filter="url(#glow-kc)">
+                <rect x="30" y="110" width="200" height="180" rx="12" fill="#164e63" stroke="#0891b2" stroke-width="2"/>
+                <rect x="30" y="110" width="200" height="36" rx="12" fill="#0891b2"/>
+                <text x="130" y="134" text-anchor="middle" fill="#fff" font-size="14" font-weight="700">KEYCLOAK</text>
+                <text x="50" y="168" fill="#67e8f9" font-size="11" font-weight="600">Realm: helio</text>
+                <text x="50" y="186" fill="#94a3b8" font-size="10">users &bull; roles &bull; clients</text>
+                <text x="50" y="204" fill="#94a3b8" font-size="10">sessions &bull; tokens</text>
+                <text x="50" y="222" fill="#94a3b8" font-size="10">realm_roles (8 personas)</text>
+                <text x="50" y="240" fill="#94a3b8" font-size="10">groups &bull; role_mappings</text>
+                <text x="50" y="260" fill="#94a3b8" font-size="10">client_scopes &bull; protocols</text>
+                <text x="50" y="278" fill="#67e8f9" font-size="10" font-weight="600">OIDC / JWT tokens</text>
+            </g>
+
+            <!-- Keycloak data labels -->
+            <g>
+                <rect x="250" y="140" width="130" height="22" rx="4" fill="#164e63" stroke="#0891b2" stroke-width="1"/>
+                <text x="315" y="155" text-anchor="middle" fill="#67e8f9" font-size="10">JWT (sub, roles)</text>
+
+                <rect x="250" y="180" width="130" height="22" rx="4" fill="#164e63" stroke="#0891b2" stroke-width="1"/>
+                <text x="315" y="195" text-anchor="middle" fill="#67e8f9" font-size="10">persona mapping</text>
+
+                <rect x="250" y="220" width="130" height="22" rx="4" fill="#164e63" stroke="#0891b2" stroke-width="1"/>
+                <text x="315" y="235" text-anchor="middle" fill="#67e8f9" font-size="10">RBAC permissions</text>
+            </g>
+
+            <!-- ── JIRA NODE ── -->
+            <g filter="url(#glow-jira)">
+                <rect x="30" y="390" width="200" height="200" rx="12" fill="#1e3a5f" stroke="#2563EB" stroke-width="2"/>
+                <rect x="30" y="390" width="200" height="36" rx="12" fill="#2563EB"/>
+                <text x="130" y="414" text-anchor="middle" fill="#fff" font-size="14" font-weight="700">JIRA</text>
+                <text x="50" y="448" fill="#93c5fd" font-size="11" font-weight="600">Project: ValueOps</text>
+                <text x="50" y="466" fill="#94a3b8" font-size="10">initiatives</text>
+                <text x="50" y="484" fill="#94a3b8" font-size="10">epics &bull; epic_metadata</text>
+                <text x="50" y="502" fill="#94a3b8" font-size="10">stories &bull; story_details</text>
+                <text x="50" y="520" fill="#94a3b8" font-size="10">acceptance_criteria</text>
+                <text x="50" y="538" fill="#94a3b8" font-size="10">labels &bull; sprints</text>
+                <text x="50" y="556" fill="#94a3b8" font-size="10">transitions &bull; comments</text>
+                <text x="50" y="574" fill="#93c5fd" font-size="10" font-weight="600">REST API v3</text>
+            </g>
+
+            <!-- Jira data labels -->
+            <g>
+                <rect x="250" y="420" width="150" height="22" rx="4" fill="#1e3a5f" stroke="#2563EB" stroke-width="1"/>
+                <text x="325" y="435" text-anchor="middle" fill="#93c5fd" font-size="10">storyId, epic link</text>
+
+                <rect x="250" y="460" width="150" height="22" rx="4" fill="#1e3a5f" stroke="#2563EB" stroke-width="1"/>
+                <text x="325" y="475" text-anchor="middle" fill="#93c5fd" font-size="10">acceptance criteria</text>
+
+                <rect x="250" y="500" width="150" height="22" rx="4" fill="#1e3a5f" stroke="#2563EB" stroke-width="1"/>
+                <text x="325" y="515" text-anchor="middle" fill="#93c5fd" font-size="10">status, transitions</text>
+            </g>
+
+            <!-- ── BACKEND (NestJS) — CENTRE ── -->
+            <g filter="url(#glow-be)">
+                <rect x="600" y="240" width="300" height="200" rx="14" fill="#064e3b" stroke="#059669" stroke-width="3"/>
+                <rect x="600" y="240" width="300" height="40" rx="14" fill="#059669"/>
+                <text x="750" y="266" text-anchor="middle" fill="#fff" font-size="16" font-weight="700">NestJS BACKEND</text>
+
+                <text x="620" y="300" fill="#6ee7b7" font-size="11" font-weight="600">Auth Service</text>
+                <text x="780" y="300" fill="#94a3b8" font-size="10">JWT + Keycloak</text>
+
+                <text x="620" y="320" fill="#6ee7b7" font-size="11" font-weight="600">Persona Projection</text>
+                <text x="790" y="320" fill="#94a3b8" font-size="10">DTO filtering</text>
+
+                <text x="620" y="340" fill="#6ee7b7" font-size="11" font-weight="600">D1 Modules</text>
+                <text x="730" y="340" fill="#94a3b8" font-size="10">Authoring, Gov, Conform</text>
+
+                <text x="620" y="360" fill="#6ee7b7" font-size="11" font-weight="600">D2 Module</text>
+                <text x="710" y="360" fill="#94a3b8" font-size="10">Spec Capture (stub)</text>
+
+                <text x="620" y="380" fill="#6ee7b7" font-size="11" font-weight="600">D3 Modules</text>
+                <text x="720" y="380" fill="#94a3b8" font-size="10">Risk, Ethics, Privacy</text>
+
+                <text x="620" y="400" fill="#6ee7b7" font-size="11" font-weight="600">Audit Emitter</text>
+                <text x="740" y="400" fill="#94a3b8" font-size="10">dual-write handler</text>
+
+                <text x="620" y="420" fill="#6ee7b7" font-size="11" font-weight="600">Conformance Engine</text>
+                <text x="775" y="420" fill="#94a3b8" font-size="10">STD &#8594; TGT</text>
+            </g>
+
+            <!-- ── POSTGRESQL NODE ── -->
+            <g filter="url(#glow-pg)">
+                <rect x="1080" y="80" width="290" height="340" rx="12" fill="#1e3a5f" stroke="#336791" stroke-width="2"/>
+                <rect x="1080" y="80" width="290" height="36" rx="12" fill="#336791"/>
+                <text x="1225" y="104" text-anchor="middle" fill="#fff" font-size="14" font-weight="700">POSTGRESQL</text>
+
+                <!-- d1 schema -->
+                <text x="1100" y="136" fill="#93c5fd" font-size="11" font-weight="700">schema: d1</text>
+                <text x="1100" y="152" fill="#94a3b8" font-size="10">adrs &bull; intent_specs &bull; models</text>
+                <text x="1100" y="166" fill="#94a3b8" font-size="10">policies &bull; controls &bull; metadata_tags</text>
+                <text x="1100" y="180" fill="#94a3b8" font-size="10">governance_transitions &bull; handovers</text>
+                <text x="1100" y="194" fill="#94a3b8" font-size="10">drift_records &bull; scaffolds</text>
+
+                <!-- d2 schema -->
+                <text x="1100" y="218" fill="#93c5fd" font-size="11" font-weight="700">schema: d2</text>
+                <text x="1100" y="234" fill="#94a3b8" font-size="10">problems &bull; epics &bull; stories</text>
+                <text x="1100" y="248" fill="#94a3b8" font-size="10">jira_sync_state</text>
+
+                <!-- d3 schema -->
+                <text x="1100" y="272" fill="#93c5fd" font-size="11" font-weight="700">schema: d3</text>
+                <text x="1100" y="288" fill="#94a3b8" font-size="10">risks &bull; risk_scores &bull; risk_waivers</text>
+                <text x="1100" y="302" fill="#94a3b8" font-size="10">ethics_policies &bull; ethics_flags</text>
+                <text x="1100" y="316" fill="#94a3b8" font-size="10">privacy_constraints &bull; consent_records</text>
+                <text x="1100" y="330" fill="#94a3b8" font-size="10">compliance_attestations</text>
+
+                <!-- d4, d5 reserved -->
+                <text x="1100" y="354" fill="#475569" font-size="10" font-style="italic">d4, d5 — reserved (R2+)</text>
+
+                <!-- Prisma -->
+                <text x="1100" y="380" fill="#67e8f9" font-size="10" font-weight="600">ORM: Prisma (migrations, type safety)</text>
+                <text x="1100" y="396" fill="#475569" font-size="10">No cross-schema FKs</text>
+            </g>
+
+            <!-- ── AUDIT schema (special callout) ── -->
+            <g filter="url(#glow-audit)">
+                <rect x="1080" y="460" width="290" height="140" rx="12" fill="#450a0a" stroke="#DC2626" stroke-width="2"/>
+                <rect x="1080" y="460" width="290" height="36" rx="12" fill="#DC2626"/>
+                <text x="1225" y="484" text-anchor="middle" fill="#fff" font-size="14" font-weight="700">AUDIT SCHEMA</text>
+                <text x="1100" y="516" fill="#fca5a5" font-size="11" font-weight="600">schema: audit (append-only)</text>
+                <text x="1100" y="534" fill="#94a3b8" font-size="10">events (hash-chained rows)</text>
+                <text x="1100" y="550" fill="#94a3b8" font-size="10">prevHash = sha256(prior row)</text>
+                <text x="1100" y="566" fill="#f87171" font-size="10" font-weight="600">INSERT ONLY — no UPDATE/DELETE</text>
+                <text x="1100" y="582" fill="#94a3b8" font-size="10">CI emitter + UX approval emitter</text>
+            </g>
+
+            <!-- ── REDPANDA (events) ── -->
+            <g filter="url(#glow-event)">
+                <rect x="620" y="580" width="260" height="110" rx="12" fill="#451a03" stroke="#f59e0b" stroke-width="2"/>
+                <rect x="620" y="580" width="260" height="32" rx="12" fill="#f59e0b"/>
+                <text x="750" y="602" text-anchor="middle" fill="#1e293b" font-size="13" font-weight="700">REDPANDA (Event Bus)</text>
+                <text x="640" y="630" fill="#fcd34d" font-size="10">valueops.d1.adr-approved</text>
+                <text x="640" y="646" fill="#fcd34d" font-size="10">valueops.d1.spec-signed-off</text>
+                <text x="640" y="662" fill="#fcd34d" font-size="10">valueops.d3.risk-waived</text>
+                <text x="640" y="678" fill="#fcd34d" font-size="10">valueops.audit.event-emitted</text>
+            </g>
+
+            <!-- ── Flow direction annotations ── -->
+            <text x="420" y="130" fill="#0891b2" font-size="11" font-weight="700">SYNC: OIDC tokens, user info</text>
+            <text x="420" y="410" fill="#2563EB" font-size="11" font-weight="700">SYNC: REST API v3</text>
+            <text x="940" y="130" fill="#336791" font-size="11" font-weight="700">READ/WRITE: Prisma ORM</text>
+            <text x="940" y="460" fill="#DC2626" font-size="11" font-weight="700">APPEND: dual-write</text>
+            <text x="640" y="560" fill="#f59e0b" font-size="11" font-weight="700">ASYNC: domain events</text>
+
+        </svg>
+    </div>
+
+    <!-- ════════════════════════════════════════════════════════
+         DETAILED SCHEMAS PER STORAGE
+         ════════════════════════════════════════════════════════ -->
+
+    <h2 class="section-title" style="color:var(--keycloak-primary);">1. Keycloak &rarr; Backend Data Flows</h2>
+
+    <div class="storage-grid">
+        <div class="storage-card card-keycloak">
+            <div class="card-header">Keycloak Internal Tables (Realm: helio)</div>
+            <div class="card-body">
+                <div class="schema-block">
+                    <h4>USER_ENTITY</h4>
+                    <table>
+                        <thead><tr><th>Column</th><th>Type</th><th>Notes</th></tr></thead>
+                        <tbody>
+                            <tr><td class="col-name">id</td><td>VARCHAR <span class="pk">PK</span></td><td>Keycloak user UUID</td></tr>
+                            <tr><td class="col-name">username</td><td>VARCHAR</td><td>Login name</td></tr>
+                            <tr><td class="col-name">email</td><td>VARCHAR</td><td>User email</td></tr>
+                            <tr><td class="col-name">first_name</td><td>VARCHAR</td><td>Display name</td></tr>
+                            <tr><td class="col-name">last_name</td><td>VARCHAR</td><td>Display name</td></tr>
+                            <tr><td class="col-name">enabled</td><td>BOOLEAN</td><td>Account active</td></tr>
+                            <tr><td class="col-name">realm_id</td><td>VARCHAR <span class="fk">FK</span></td><td><code>helio</code></td></tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <div class="schema-block">
+                    <h4>KEYCLOAK_ROLE</h4>
+                    <table>
+                        <thead><tr><th>Column</th><th>Type</th><th>Notes</th></tr></thead>
+                        <tbody>
+                            <tr><td class="col-name">id</td><td>VARCHAR <span class="pk">PK</span></td><td>Role UUID</td></tr>
+                            <tr><td class="col-name">name</td><td>VARCHAR</td><td>Role name (see below)</td></tr>
+                            <tr><td class="col-name">realm_id</td><td>VARCHAR <span class="fk">FK</span></td><td><code>helio</code></td></tr>
+                            <tr><td class="col-name">client</td><td>VARCHAR</td><td><code>valueops</code> client</td></tr>
+                            <tr><td class="col-name">description</td><td>TEXT</td><td>Role description</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <div class="schema-block">
+                    <h4>USER_ROLE_MAPPING</h4>
+                    <table>
+                        <thead><tr><th>Column</th><th>Type</th><th>Notes</th></tr></thead>
+                        <tbody>
+                            <tr><td class="col-name">user_id</td><td>VARCHAR <span class="fk">FK</span></td><td>Links to USER_ENTITY</td></tr>
+                            <tr><td class="col-name">role_id</td><td>VARCHAR <span class="fk">FK</span></td><td>Links to KEYCLOAK_ROLE</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <div class="note">
+                    <strong>8 Persona Roles (helio realm):</strong><br>
+                    <code>product-manager</code> &bull; <code>enterprise-architect</code> &bull; <code>lead-architect</code> &bull; <code>solution-architect</code> &bull; <code>lead-engineer</code> &bull; <code>risk-officer</code> &bull; <code>ethics-reviewer</code> &bull; <code>compliance-lead</code>
+                </div>
+            </div>
+        </div>
+
+        <div class="storage-card card-backend">
+            <div class="card-header">What Flows from Keycloak &rarr; Backend</div>
+            <div class="card-body">
+                <div class="schema-block">
+                    <h4>JWT Token Payload (on every request)</h4>
+                    <table>
+                        <thead><tr><th>Field</th><th>Type</th><th>Used By</th></tr></thead>
+                        <tbody>
+                            <tr><td class="col-name">sub</td><td>string</td><td>User identification across all services</td></tr>
+                            <tr><td class="col-name">preferred_username</td><td>string</td><td>Display in UI; audit trail <code>actor</code></td></tr>
+                            <tr><td class="col-name">email</td><td>string</td><td>Notification routing</td></tr>
+                            <tr><td class="col-name">realm_access.roles[]</td><td>string[]</td><td><strong>Persona mapping</strong> &rarr; projection layer</td></tr>
+                            <tr><td class="col-name">resource_access.valueops.roles[]</td><td>string[]</td><td>Client-specific permissions</td></tr>
+                            <tr><td class="col-name">exp</td><td>number</td><td>Token expiry validation</td></tr>
+                            <tr><td class="col-name">iat</td><td>number</td><td>Token issued-at</td></tr>
+                            <tr><td class="col-name">iss</td><td>string</td><td>Issuer verification (<code>helio</code> realm URL)</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <div class="schema-block">
+                    <h4>Token Introspection Response (on-demand)</h4>
+                    <table>
+                        <thead><tr><th>Field</th><th>Used For</th></tr></thead>
+                        <tbody>
+                            <tr><td class="col-name">active</td><td>Token still valid (not revoked)?</td></tr>
+                            <tr><td class="col-name">client_id</td><td>Which client made the request</td></tr>
+                            <tr><td class="col-name">scope</td><td>Granted scopes (openid, profile, email)</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <div class="schema-block">
+                    <h4>User Info Endpoint (/userinfo)</h4>
+                    <table>
+                        <thead><tr><th>Field</th><th>Used For</th></tr></thead>
+                        <tbody>
+                            <tr><td class="col-name">sub</td><td>Canonical user ID</td></tr>
+                            <tr><td class="col-name">name</td><td>Full display name</td></tr>
+                            <tr><td class="col-name">groups[]</td><td>Group membership (optional RBAC layer)</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <div class="note">
+                    <strong>Backend consumes Keycloak data via:</strong><br>
+                    <span class="badge badge-sync">SYNC</span> OIDC / JWT on every HTTP request<br>
+                    <span class="badge badge-sync">SYNC</span> Token introspection (optional re-validation)<br>
+                    <span class="badge badge-read">READ</span> Admin REST API (user management, role queries)<br>
+                    <strong>Backend NEVER writes</strong> to Keycloak's internal DB directly.
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <hr class="divider">
+
+    <!-- ── JIRA ── -->
+    <h2 class="section-title" style="color:var(--jira-primary);">2. Jira &rarr; Backend Data Flows</h2>
+
+    <div class="storage-grid">
+        <div class="storage-card card-jira">
+            <div class="card-header">Jira Entities (REST API v3)</div>
+            <div class="card-body">
+                <div class="schema-block">
+                    <h4>INITIATIVE</h4>
+                    <table>
+                        <thead><tr><th>Field</th><th>Type</th><th>Notes</th></tr></thead>
+                        <tbody>
+                            <tr><td class="col-name">id</td><td>string</td><td>Jira initiative key (e.g. <code>VO-INIT-001</code>)</td></tr>
+                            <tr><td class="col-name">summary</td><td>string</td><td>Initiative title</td></tr>
+                            <tr><td class="col-name">description</td><td>string</td><td>Business objective</td></tr>
+                            <tr><td class="col-name">status</td><td>string</td><td>To Do / In Progress / Done</td></tr>
+                            <tr><td class="col-name">owner</td><td>string</td><td>Product Manager</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <div class="schema-block">
+                    <h4>EPIC</h4>
+                    <table>
+                        <thead><tr><th>Field</th><th>Type</th><th>Notes</th></tr></thead>
+                        <tbody>
+                            <tr><td class="col-name">id</td><td>string</td><td>Jira epic key (e.g. <code>VO-EPIC-042</code>)</td></tr>
+                            <tr><td class="col-name">summary</td><td>string</td><td>Epic title</td></tr>
+                            <tr><td class="col-name">initiative_link</td><td>string</td><td>Parent initiative key</td></tr>
+                            <tr><td class="col-name">status</td><td>string</td><td>Lifecycle state</td></tr>
+                            <tr><td class="col-name">labels[]</td><td>string[]</td><td>Domain tags, phase tags</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <div class="schema-block">
+                    <h4>STORY</h4>
+                    <table>
+                        <thead><tr><th>Field</th><th>Type</th><th>Notes</th></tr></thead>
+                        <tbody>
+                            <tr><td class="col-name">id</td><td>string</td><td>Jira story key (e.g. <code>VO-123</code>)</td></tr>
+                            <tr><td class="col-name">summary</td><td>string</td><td>Story title</td></tr>
+                            <tr><td class="col-name">description</td><td>string</td><td>User story body</td></tr>
+                            <tr><td class="col-name">epic_link</td><td>string</td><td>Parent epic key</td></tr>
+                            <tr><td class="col-name">status</td><td>string</td><td>To Do / In Progress / In Review / Done</td></tr>
+                            <tr><td class="col-name">assignee</td><td>string</td><td>Assigned developer</td></tr>
+                            <tr><td class="col-name">sprint</td><td>string</td><td>Sprint name</td></tr>
+                            <tr><td class="col-name">labels[]</td><td>string[]</td><td>Domain, priority tags</td></tr>
+                            <tr><td class="col-name">acceptance_criteria</td><td>string</td><td>AC text (in description or custom field)</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <div class="schema-block">
+                    <h4>TRANSITION / CHANGELOG</h4>
+                    <table>
+                        <thead><tr><th>Field</th><th>Type</th><th>Notes</th></tr></thead>
+                        <tbody>
+                            <tr><td class="col-name">issue_id</td><td>string</td><td>Story/epic key</td></tr>
+                            <tr><td class="col-name">from_status</td><td>string</td><td>Previous status</td></tr>
+                            <tr><td class="col-name">to_status</td><td>string</td><td>New status</td></tr>
+                            <tr><td class="col-name">author</td><td>string</td><td>Who made the transition</td></tr>
+                            <tr><td class="col-name">timestamp</td><td>datetime</td><td>When the transition happened</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <div class="storage-card card-backend">
+            <div class="card-header">What Flows from Jira &rarr; Backend</div>
+            <div class="card-body">
+                <div class="schema-block">
+                    <h4>Inbound: Jira &rarr; Backend (READ)</h4>
+                    <table>
+                        <thead><tr><th>Data</th><th>Used By</th><th>Purpose</th></tr></thead>
+                        <tbody>
+                            <tr><td class="col-name">storyId</td><td>D1A: Spec Authoring</td><td>1:1 link between spec and story</td></tr>
+                            <tr><td class="col-name">epic_link</td><td>D2: Spec Capture</td><td>Problem → Epic traceability</td></tr>
+                            <tr><td class="col-name">acceptance_criteria</td><td>D1A: Spec Linter</td><td>Validate outcome-shaped acceptance</td></tr>
+                            <tr><td class="col-name">status</td><td>D1C: Governance</td><td>Story readiness for handover gate</td></tr>
+                            <tr><td class="col-name">labels[]</td><td>D1E: Metadata</td><td>Domain/capability tagging &rarr; policy resolution</td></tr>
+                            <tr><td class="col-name">transitions</td><td>Audit Emitter</td><td>Story lifecycle events for audit correlation</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <div class="schema-block">
+                    <h4>Outbound: Backend &rarr; Jira (WRITE)</h4>
+                    <table>
+                        <thead><tr><th>Data</th><th>Source Module</th><th>Purpose</th></tr></thead>
+                        <tbody>
+                            <tr><td class="col-name">New epics</td><td>D2: Spec Capture</td><td>Problem → auto-generated epics</td></tr>
+                            <tr><td class="col-name">New stories</td><td>D2: Spec Capture</td><td>Epic → auto-generated stories + AC</td></tr>
+                            <tr><td class="col-name">Labels / metadata</td><td>D1E: Metadata</td><td>Sync domain tags back to Jira</td></tr>
+                            <tr><td class="col-name">Status transitions</td><td>D1C: Governance</td><td>Update story status on spec sign-off</td></tr>
+                            <tr><td class="col-name">Comments</td><td>D1F: Tooling</td><td>Post governance gate results as comments</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <div class="note">
+                    <strong>Backend interacts with Jira via:</strong><br>
+                    <span class="badge badge-sync">SYNC</span> Jira REST API v3 (read issues, create epics/stories)<br>
+                    <span class="badge badge-async">ASYNC</span> Jira Webhooks &rarr; Redpanda &rarr; Backend (status change events)<br>
+                    <strong>PM authors</strong> initiatives, epics &amp; stories in Jira. <strong>No ADRs in Jira.</strong>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <hr class="divider">
+
+    <!-- ── POSTGRESQL ── -->
+    <h2 class="section-title" style="color:var(--pg-primary);">3. PostgreSQL &harr; Backend Data Flows</h2>
+
+    <div class="storage-grid">
+
+        <!-- Schema: d1 -->
+        <div class="storage-card card-pg">
+            <div class="card-header">Schema: d1 (Architecture as Code)</div>
+            <div class="card-body">
+                <div class="schema-block">
+                    <h4>d1.adrs</h4>
+                    <table>
+                        <thead><tr><th>Column</th><th>Type</th><th>Notes</th></tr></thead>
+                        <tbody>
+                            <tr><td class="col-name">id</td><td>UUID <span class="pk">PK</span></td><td>ADR-NNN format</td></tr>
+                            <tr><td class="col-name">title</td><td>VARCHAR(255)</td><td>ADR title</td></tr>
+                            <tr><td class="col-name">context</td><td>TEXT <span class="req">REQ</span></td><td>Why the decision is needed</td></tr>
+                            <tr><td class="col-name">decision</td><td>TEXT <span class="req">REQ</span></td><td>The decision taken</td></tr>
+                            <tr><td class="col-name">alternatives</td><td>JSONB</td><td>Array of alternatives considered</td></tr>
+                            <tr><td class="col-name">consequences</td><td>TEXT</td><td>Impact of the decision</td></tr>
+                            <tr><td class="col-name">status</td><td>VARCHAR(30)</td><td><code>draft</code> | <code>recommended</code> | <code>approved</code></td></tr>
+                            <tr><td class="col-name">drafted_by</td><td>VARCHAR</td><td>SA user ID (from Keycloak)</td></tr>
+                            <tr><td class="col-name">recommended_by</td><td>VARCHAR</td><td>LA user ID</td></tr>
+                            <tr><td class="col-name">approved_by</td><td>VARCHAR</td><td>EA user ID</td></tr>
+                            <tr><td class="col-name">policy_refs</td><td>JSONB</td><td>Linked policy IDs</td></tr>
+                            <tr><td class="col-name">control_refs</td><td>JSONB</td><td>Linked control IDs</td></tr>
+                            <tr><td class="col-name">metadata_tags</td><td>JSONB</td><td>Domain, capability, lifecycle tags</td></tr>
+                            <tr><td class="col-name">created_at</td><td>TIMESTAMPTZ</td><td>ISO 8601</td></tr>
+                            <tr><td class="col-name">updated_at</td><td>TIMESTAMPTZ</td><td>ISO 8601</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <div class="schema-block">
+                    <h4>d1.intent_specs</h4>
+                    <table>
+                        <thead><tr><th>Column</th><th>Type</th><th>Notes</th></tr></thead>
+                        <tbody>
+                            <tr><td class="col-name">id</td><td>UUID <span class="pk">PK</span></td><td>VO-SPEC-NNN</td></tr>
+                            <tr><td class="col-name">story_id</td><td>VARCHAR <span class="req">REQ UNIQUE</span></td><td>1:1 Jira story link</td></tr>
+                            <tr><td class="col-name">title</td><td>VARCHAR(255)</td><td>Spec title</td></tr>
+                            <tr><td class="col-name">problem</td><td>TEXT <span class="req">REQ</span></td><td>Problem statement</td></tr>
+                            <tr><td class="col-name">actors</td><td>JSONB</td><td>Array of actor names</td></tr>
+                            <tr><td class="col-name">outcome</td><td>TEXT <span class="req">REQ</span></td><td>Desired outcome</td></tr>
+                            <tr><td class="col-name">behaviour</td><td>JSONB</td><td>Behaviour descriptions</td></tr>
+                            <tr><td class="col-name">constraints</td><td>JSONB</td><td>Constraint descriptions</td></tr>
+                            <tr><td class="col-name">acceptance_criteria</td><td>JSONB</td><td><code>[{id, statement}]</code> outcome-shaped</td></tr>
+                            <tr><td class="col-name">adr_coverage</td><td>VARCHAR(20)</td><td><code>references</code> | <code>none_required</code> | <code>gap</code></td></tr>
+                            <tr><td class="col-name">adr_refs</td><td>JSONB</td><td>Array of ADR IDs</td></tr>
+                            <tr><td class="col-name">adr_coverage_note</td><td>TEXT</td><td>Required for <code>none_required</code> &amp; <code>gap</code></td></tr>
+                            <tr><td class="col-name">risk_tier</td><td>VARCHAR(10)</td><td><code>low</code> | <code>medium</code> | <code>high</code></td></tr>
+                            <tr><td class="col-name">status</td><td>VARCHAR(20)</td><td><code>drafted</code> &rarr; <code>valid</code> &rarr; <code>signed_off</code> &rarr; <code>building</code> &rarr; <code>conformant</code></td></tr>
+                            <tr><td class="col-name">baselined_at</td><td>TIMESTAMPTZ</td><td>Set at LE sign-off</td></tr>
+                            <tr><td class="col-name">baseline_version</td><td>INT</td><td>Increments on governed changes</td></tr>
+                            <tr><td class="col-name">created_at</td><td>TIMESTAMPTZ</td><td></td></tr>
+                            <tr><td class="col-name">updated_at</td><td>TIMESTAMPTZ</td><td></td></tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <div class="schema-block">
+                    <h4>d1.policies</h4>
+                    <table>
+                        <thead><tr><th>Column</th><th>Type</th><th>Notes</th></tr></thead>
+                        <tbody>
+                            <tr><td class="col-name">id</td><td>UUID <span class="pk">PK</span></td><td></td></tr>
+                            <tr><td class="col-name">name</td><td>VARCHAR(255)</td><td>Policy name</td></tr>
+                            <tr><td class="col-name">body</td><td>TEXT</td><td>Rego source (hidden from business personas)</td></tr>
+                            <tr><td class="col-name">format</td><td>VARCHAR(20)</td><td><code>rego</code> | <code>yaml</code></td></tr>
+                            <tr><td class="col-name">adr_ref</td><td>UUID</td><td>Governing ADR ID</td></tr>
+                            <tr><td class="col-name">status</td><td>VARCHAR(20)</td><td><code>draft</code> | <code>active</code> | <code>deprecated</code></td></tr>
+                            <tr><td class="col-name">created_at</td><td>TIMESTAMPTZ</td><td></td></tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <div class="schema-block">
+                    <h4>d1.controls</h4>
+                    <table>
+                        <thead><tr><th>Column</th><th>Type</th><th>Notes</th></tr></thead>
+                        <tbody>
+                            <tr><td class="col-name">id</td><td>UUID <span class="pk">PK</span></td><td></td></tr>
+                            <tr><td class="col-name">name</td><td>VARCHAR(255)</td><td></td></tr>
+                            <tr><td class="col-name">type</td><td>VARCHAR(30)</td><td><code>tfsec</code> | <code>archunit</code> | <code>conftest</code></td></tr>
+                            <tr><td class="col-name">config</td><td>JSONB</td><td>Rule configuration</td></tr>
+                            <tr><td class="col-name">policy_ref</td><td>UUID</td><td>Parent policy ID</td></tr>
+                            <tr><td class="col-name">status</td><td>VARCHAR(20)</td><td></td></tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <div class="schema-block">
+                    <h4>d1.governance_transitions</h4>
+                    <table>
+                        <thead><tr><th>Column</th><th>Type</th><th>Notes</th></tr></thead>
+                        <tbody>
+                            <tr><td class="col-name">id</td><td>UUID <span class="pk">PK</span></td><td></td></tr>
+                            <tr><td class="col-name">artefact_id</td><td>UUID</td><td>ADR / spec / policy ID</td></tr>
+                            <tr><td class="col-name">artefact_type</td><td>VARCHAR</td><td><code>adr</code> | <code>spec</code> | <code>policy</code></td></tr>
+                            <tr><td class="col-name">from_status</td><td>VARCHAR</td><td></td></tr>
+                            <tr><td class="col-name">to_status</td><td>VARCHAR</td><td></td></tr>
+                            <tr><td class="col-name">actor</td><td>VARCHAR</td><td>Keycloak user sub</td></tr>
+                            <tr><td class="col-name">persona</td><td>VARCHAR</td><td>Role at time of action</td></tr>
+                            <tr><td class="col-name">rationale</td><td>TEXT</td><td></td></tr>
+                            <tr><td class="col-name">timestamp</td><td>TIMESTAMPTZ</td><td></td></tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <div class="schema-block">
+                    <h4>d1.metadata_tags &bull; d1.models &bull; d1.drift_records &bull; d1.handovers &bull; d1.scaffolds</h4>
+                    <table>
+                        <thead><tr><th>Table</th><th>Key Columns</th></tr></thead>
+                        <tbody>
+                            <tr><td class="col-name">metadata_tags</td><td>id, artefact_ref, tag_key, tag_value, created_at</td></tr>
+                            <tr><td class="col-name">models</td><td>id, type (C4/PlantUML), source_path, minio_ref, version, adr_ref</td></tr>
+                            <tr><td class="col-name">drift_records</td><td>id, artefact_ref, adr_ref, drift_type, severity, detected_at</td></tr>
+                            <tr><td class="col-name">handovers</td><td>id, spec_id, le_user_id, status, accepted_at, variation_note</td></tr>
+                            <tr><td class="col-name">scaffolds</td><td>id, spec_id, adr_ref, template, output_path, generated_at</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- Schema: d2 -->
+        <div class="storage-card card-pg">
+            <div class="card-header">Schema: d2 (Strategy — Stub)</div>
+            <div class="card-body">
+                <div class="schema-block">
+                    <h4>d2.problems</h4>
+                    <table>
+                        <thead><tr><th>Column</th><th>Type</th><th>Notes</th></tr></thead>
+                        <tbody>
+                            <tr><td class="col-name">id</td><td>UUID <span class="pk">PK</span></td><td></td></tr>
+                            <tr><td class="col-name">statement</td><td>TEXT <span class="req">REQ</span></td><td>Problem description</td></tr>
+                            <tr><td class="col-name">audience</td><td>TEXT</td><td>Target audience</td></tr>
+                            <tr><td class="col-name">value_proposition</td><td>TEXT</td><td>Business value</td></tr>
+                            <tr><td class="col-name">constraints</td><td>JSONB</td><td>Known constraints</td></tr>
+                            <tr><td class="col-name">created_by</td><td>VARCHAR</td><td>PM user ID</td></tr>
+                            <tr><td class="col-name">created_at</td><td>TIMESTAMPTZ</td><td></td></tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <div class="schema-block">
+                    <h4>d2.generated_epics &bull; d2.generated_stories</h4>
+                    <table>
+                        <thead><tr><th>Column</th><th>Type</th><th>Notes</th></tr></thead>
+                        <tbody>
+                            <tr><td class="col-name">id</td><td>UUID <span class="pk">PK</span></td><td></td></tr>
+                            <tr><td class="col-name">problem_id</td><td>UUID</td><td>Parent problem</td></tr>
+                            <tr><td class="col-name">jira_key</td><td>VARCHAR</td><td>Synced Jira issue key</td></tr>
+                            <tr><td class="col-name">title</td><td>VARCHAR(255)</td><td></td></tr>
+                            <tr><td class="col-name">body</td><td>TEXT</td><td>Generated content</td></tr>
+                            <tr><td class="col-name">sync_status</td><td>VARCHAR</td><td><code>pending</code> | <code>synced</code> | <code>failed</code></td></tr>
+                            <tr><td class="col-name">synced_at</td><td>TIMESTAMPTZ</td><td></td></tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <div class="schema-block">
+                    <h4>d2.jira_sync_state</h4>
+                    <table>
+                        <thead><tr><th>Column</th><th>Type</th><th>Notes</th></tr></thead>
+                        <tbody>
+                            <tr><td class="col-name">id</td><td>UUID <span class="pk">PK</span></td><td></td></tr>
+                            <tr><td class="col-name">entity_type</td><td>VARCHAR</td><td><code>epic</code> | <code>story</code></td></tr>
+                            <tr><td class="col-name">local_id</td><td>UUID</td><td>d2 entity ID</td></tr>
+                            <tr><td class="col-name">jira_key</td><td>VARCHAR</td><td>Remote Jira key</td></tr>
+                            <tr><td class="col-name">last_sync</td><td>TIMESTAMPTZ</td><td>Last successful sync</td></tr>
+                            <tr><td class="col-name">direction</td><td>VARCHAR</td><td><code>push</code> | <code>pull</code></td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- Schema: d3 -->
+        <div class="storage-card card-pg">
+            <div class="card-header">Schema: d3 (Risk, Ethics, Privacy)</div>
+            <div class="card-body">
+                <div class="schema-block">
+                    <h4>d3.risks</h4>
+                    <table>
+                        <thead><tr><th>Column</th><th>Type</th><th>Notes</th></tr></thead>
+                        <tbody>
+                            <tr><td class="col-name">id</td><td>UUID <span class="pk">PK</span></td><td></td></tr>
+                            <tr><td class="col-name">title</td><td>VARCHAR(255)</td><td></td></tr>
+                            <tr><td class="col-name">description</td><td>TEXT</td><td></td></tr>
+                            <tr><td class="col-name">severity</td><td>VARCHAR(10)</td><td><code>low</code> | <code>medium</code> | <code>high</code> | <code>critical</code></td></tr>
+                            <tr><td class="col-name">likelihood</td><td>VARCHAR(10)</td><td></td></tr>
+                            <tr><td class="col-name">exposure</td><td>VARCHAR(10)</td><td></td></tr>
+                            <tr><td class="col-name">artefact_ref</td><td>VARCHAR</td><td>ADR / spec / story this risk is linked to</td></tr>
+                            <tr><td class="col-name">artefact_type</td><td>VARCHAR</td><td></td></tr>
+                            <tr><td class="col-name">mitigation</td><td>TEXT</td><td>Mitigation plan</td></tr>
+                            <tr><td class="col-name">status</td><td>VARCHAR(20)</td><td><code>open</code> | <code>mitigated</code> | <code>waived</code> | <code>escalated</code></td></tr>
+                            <tr><td class="col-name">created_at</td><td>TIMESTAMPTZ</td><td></td></tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <div class="schema-block">
+                    <h4>d3.risk_waivers</h4>
+                    <table>
+                        <thead><tr><th>Column</th><th>Type</th><th>Notes</th></tr></thead>
+                        <tbody>
+                            <tr><td class="col-name">id</td><td>UUID <span class="pk">PK</span></td><td></td></tr>
+                            <tr><td class="col-name">risk_id</td><td>UUID</td><td>Parent risk</td></tr>
+                            <tr><td class="col-name">waived_by</td><td>VARCHAR</td><td>Risk Officer user ID</td></tr>
+                            <tr><td class="col-name">rationale</td><td>TEXT <span class="req">REQ</span></td><td><strong>Mandatory</strong></td></tr>
+                            <tr><td class="col-name">waived_at</td><td>TIMESTAMPTZ</td><td></td></tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <div class="schema-block">
+                    <h4>d3.ethics_policies &bull; d3.ethics_flags</h4>
+                    <table>
+                        <thead><tr><th>Column</th><th>Type</th><th>Notes</th></tr></thead>
+                        <tbody>
+                            <tr><td class="col-name">ethics_policies</td><td></td><td>id, taxonomy, binding_rules (JSONB), jurisdiction, status</td></tr>
+                            <tr><td class="col-name">ethics_flags</td><td></td><td>id, artefact_ref, flag_type, reviewer_id, resolution, resolved_at</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <div class="schema-block">
+                    <h4>d3.privacy_constraints &bull; d3.consent_records &bull; d3.compliance_attestations</h4>
+                    <table>
+                        <thead><tr><th>Table</th><th>Key Columns</th></tr></thead>
+                        <tbody>
+                            <tr><td class="col-name">privacy_constraints</td><td>id, legal_basis, data_category, minimisation_rule, artefact_ref</td></tr>
+                            <tr><td class="col-name">consent_records</td><td>id, subject_ref, consent_type, granted_at, revoked_at</td></tr>
+                            <tr><td class="col-name">compliance_attestations</td><td>id, attested_by (Compliance Lead), framework (ISO/NIST/FCA), evidence_refs, attested_at</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- Schema: audit -->
+        <div class="storage-card" style="border-color: var(--audit-primary);">
+            <div class="card-header" style="background:#7f1d1d; color:#fca5a5;">Schema: audit (Immutable, Append-Only, Hash-Chained)</div>
+            <div class="card-body">
+                <div class="schema-block">
+                    <h4 style="color:#f87171;">audit.events</h4>
+                    <table>
+                        <thead><tr><th>Column</th><th>Type</th><th>Notes</th></tr></thead>
+                        <tbody>
+                            <tr><td class="col-name">id</td><td>BIGSERIAL <span class="pk">PK</span></td><td>Monotonic sequence</td></tr>
+                            <tr><td class="col-name">event_id</td><td>UUID <span class="req">UNIQUE</span></td><td>Globally unique event ID</td></tr>
+                            <tr><td class="col-name">timestamp</td><td>TIMESTAMPTZ <span class="req">REQ</span></td><td>ISO 8601</td></tr>
+                            <tr><td class="col-name">actor</td><td>VARCHAR <span class="req">REQ</span></td><td>Keycloak sub or <code>github-actions</code></td></tr>
+                            <tr><td class="col-name">persona</td><td>VARCHAR</td><td>Role at time of action</td></tr>
+                            <tr><td class="col-name">action</td><td>VARCHAR <span class="req">REQ</span></td><td><code>policy-eval</code> | <code>control-check</code> | <code>adr-transition</code> | <code>spec-signoff</code> | <code>handover</code> | <code>waiver</code> | <code>override</code></td></tr>
+                            <tr><td class="col-name">artefact_ref</td><td>VARCHAR <span class="req">REQ</span></td><td>ADR / spec / risk ID</td></tr>
+                            <tr><td class="col-name">artefact_type</td><td>VARCHAR</td><td><code>adr</code> | <code>spec</code> | <code>risk</code> | <code>ethics</code> | <code>control</code></td></tr>
+                            <tr><td class="col-name">story_id</td><td>VARCHAR</td><td>Jira story if applicable</td></tr>
+                            <tr><td class="col-name">adr_refs</td><td>JSONB</td><td>Related ADR IDs</td></tr>
+                            <tr><td class="col-name">decision</td><td>VARCHAR <span class="req">REQ</span></td><td><code>pass</code> | <code>fail</code> | <code>waiver</code> | <code>approve</code> | <code>reject</code></td></tr>
+                            <tr><td class="col-name">rationale</td><td>TEXT</td><td><strong>Required for waiver/override</strong></td></tr>
+                            <tr><td class="col-name">policy_refs</td><td>JSONB</td><td>Evaluated policies</td></tr>
+                            <tr><td class="col-name">commit_sha</td><td>VARCHAR(40)</td><td>Git SHA (if CI)</td></tr>
+                            <tr><td class="col-name">run_id</td><td>VARCHAR</td><td>GitHub Actions run ID</td></tr>
+                            <tr><td class="col-name">prev_hash</td><td>VARCHAR(64) <span class="req">REQ</span></td><td>SHA-256 of previous row (chain link)</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <div class="note">
+                    <strong>Immutability Enforcement:</strong><br>
+                    Writer roles: <code>ci_audit_writer</code> + <code>app_audit_writer</code> &mdash; <strong>INSERT only</strong> (no UPDATE/DELETE grants).<br>
+                    Chain verification: <code>prev_hash</code> = SHA-256(previous row). Any edit/deletion breaks the chain.<br>
+                    <strong>Two emitters only:</strong> CI pipeline (GitHub Actions) + APP UX approvals. No other write path.
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <hr class="divider">
+
+    <!-- ════════════════════════════════════════════════════════
+         SUMMARY FLOW DIAGRAM
+         ════════════════════════════════════════════════════════ -->
+    <h2 class="section-title" style="color:#f1f5f9;">4. Complete Data Flow Summary</h2>
+
+    <div style="background:#1e293b; border:1px solid #334155; border-radius:12px; padding:30px; font-family:monospace; font-size:13px; line-height:1.8; overflow-x:auto;">
+<pre style="color:#e2e8f0; margin:0;">
+<span style="color:#0891b2;font-weight:bold">  ┌────────────────┐</span>              <span style="color:#2563EB;font-weight:bold">┌──────────────┐</span>
+<span style="color:#0891b2;font-weight:bold">  │   KEYCLOAK     │</span>              <span style="color:#2563EB;font-weight:bold">│     JIRA     │</span>
+<span style="color:#0891b2;font-weight:bold">  │  (helio realm) │</span>              <span style="color:#2563EB;font-weight:bold">│  (REST API)  │</span>
+<span style="color:#0891b2;font-weight:bold">  └───────┬────────┘</span>              <span style="color:#2563EB;font-weight:bold">└──────┬───────┘</span>
+          │                                │
+          │ <span style="color:#67e8f9">JWT tokens</span>                     │ <span style="color:#93c5fd">stories, epics</span>
+          │ <span style="color:#67e8f9">roles → persona</span>                │ <span style="color:#93c5fd">acceptance criteria</span>
+          │ <span style="color:#67e8f9">RBAC permissions</span>               │ <span style="color:#93c5fd">status transitions</span>
+          │ <span style="color:#67e8f9">user info</span>                      │ <span style="color:#93c5fd">labels (domain tags)</span>
+          │                                │
+          ▼                                ▼
+<span style="color:#059669;font-weight:bold">  ┌──────────────────────────────────────────────────────────────┐</span>
+<span style="color:#059669;font-weight:bold">  │                    NestJS BACKEND                            │</span>
+<span style="color:#059669;font-weight:bold">  │                                                              │</span>
+<span style="color:#059669;font-weight:bold">  │  ┌────────────┐  ┌──────────┐  ┌──────────┐  ┌───────────┐ │</span>
+<span style="color:#059669;font-weight:bold">  │  │ Auth Svc   │  │ D1 Mods  │  │ D2 Stub  │  │ D3 Mods   │ │</span>
+<span style="color:#059669;font-weight:bold">  │  │ Projection │  │ Author   │  │ Spec Cap │  │ Risk      │ │</span>
+<span style="color:#059669;font-weight:bold">  │  │ Layer      │  │ Gov      │  │ Jira Sync│  │ Ethics    │ │</span>
+<span style="color:#059669;font-weight:bold">  │  │            │  │ Conform  │  │          │  │ Privacy   │ │</span>
+<span style="color:#059669;font-weight:bold">  │  └────────────┘  └──────────┘  └──────────┘  └───────────┘ │</span>
+<span style="color:#059669;font-weight:bold">  │                                                              │</span>
+<span style="color:#059669;font-weight:bold">  │              ┌──────────────────────────┐                    │</span>
+<span style="color:#059669;font-weight:bold">  │              │     AUDIT EMITTER        │                    │</span>
+<span style="color:#059669;font-weight:bold">  │              │  (dual-write handler)    │                    │</span>
+<span style="color:#059669;font-weight:bold">  │              └──────────────────────────┘                    │</span>
+<span style="color:#059669;font-weight:bold">  └──────┬────────────────┬──────────────────────┬───────────────┘</span>
+         │                │                      │
+         │ <span style="color:#67e8f9">READ/WRITE</span>    │ <span style="color:#fcd34d">PUBLISH</span>              │ <span style="color:#f87171">APPEND</span>
+         │ <span style="color:#67e8f9">via Prisma</span>    │ <span style="color:#fcd34d">domain events</span>        │ <span style="color:#f87171">hash-chained</span>
+         ▼                ▼                      ▼
+<span style="color:#336791;font-weight:bold">  ┌──────────────┐</span>  <span style="color:#f59e0b;font-weight:bold">┌──────────────┐</span>  <span style="color:#DC2626;font-weight:bold">┌──────────────────┐</span>
+<span style="color:#336791;font-weight:bold">  │  POSTGRESQL   │</span>  <span style="color:#f59e0b;font-weight:bold">│   REDPANDA   │</span>  <span style="color:#DC2626;font-weight:bold">│  AUDIT SCHEMA    │</span>
+<span style="color:#336791;font-weight:bold">  │              │</span>  <span style="color:#f59e0b;font-weight:bold">│              │</span>  <span style="color:#DC2626;font-weight:bold">│  (in PostgreSQL) │</span>
+<span style="color:#336791;font-weight:bold">  │  schema: d1  │</span>  <span style="color:#f59e0b;font-weight:bold">│  d1 events   │</span>  <span style="color:#DC2626;font-weight:bold">│                  │</span>
+<span style="color:#336791;font-weight:bold">  │  schema: d2  │</span>  <span style="color:#f59e0b;font-weight:bold">│  d3 events   │</span>  <span style="color:#DC2626;font-weight:bold">│  INSERT ONLY     │</span>
+<span style="color:#336791;font-weight:bold">  │  schema: d3  │</span>  <span style="color:#f59e0b;font-weight:bold">│  audit events│</span>  <span style="color:#DC2626;font-weight:bold">│  prevHash chain  │</span>
+<span style="color:#336791;font-weight:bold">  └──────────────┘</span>  <span style="color:#f59e0b;font-weight:bold">└──────────────┘</span>  <span style="color:#DC2626;font-weight:bold">└──────────────────┘</span>
+</pre>
+    </div>
+
+    <div style="margin-top:30px; display:grid; grid-template-columns: repeat(3, 1fr); gap:20px;">
+        <div style="background:#164e63; border:1px solid #0891b2; border-radius:8px; padding:18px;">
+            <h4 style="color:#67e8f9; margin-bottom:10px;">Keycloak &rarr; Backend</h4>
+            <ul style="margin-left:15px; font-size:12px; color:#94a3b8;">
+                <li><span class="badge badge-sync">SYNC</span> JWT on every request</li>
+                <li><span class="badge badge-read">READ</span> Token introspection</li>
+                <li><span class="badge badge-read">READ</span> User info (/userinfo)</li>
+                <li><span class="badge badge-read">READ</span> Admin API (role queries)</li>
+                <li>Backend <strong>never writes</strong> to Keycloak DB</li>
+            </ul>
+        </div>
+        <div style="background:#1e3a5f; border:1px solid #2563EB; border-radius:8px; padding:18px;">
+            <h4 style="color:#93c5fd; margin-bottom:10px;">Jira &harr; Backend</h4>
+            <ul style="margin-left:15px; font-size:12px; color:#94a3b8;">
+                <li><span class="badge badge-read">READ</span> Stories, epics, AC, labels</li>
+                <li><span class="badge badge-write">WRITE</span> Create epics/stories (D2)</li>
+                <li><span class="badge badge-write">WRITE</span> Update status on sign-off</li>
+                <li><span class="badge badge-async">ASYNC</span> Webhooks &rarr; events</li>
+                <li>PM authors in Jira; <strong>no ADRs in Jira</strong></li>
+            </ul>
+        </div>
+        <div style="background:#1e3a5f; border:1px solid #336791; border-radius:8px; padding:18px;">
+            <h4 style="color:#93c5fd; margin-bottom:10px;">PostgreSQL &harr; Backend</h4>
+            <ul style="margin-left:15px; font-size:12px; color:#94a3b8;">
+                <li><span class="badge badge-read">READ</span> <span class="badge badge-write">WRITE</span> d1, d2, d3 via Prisma</li>
+                <li><span class="badge badge-write">APPEND</span> audit schema (INSERT only)</li>
+                <li>No cross-schema FKs</li>
+                <li>Reversible migrations only</li>
+                <li>Dual-write: artefact + audit atomically</li>
+            </ul>
+        </div>
+    </div>
+
+</div>
+
+<footer>
+    <p><strong>ValueOps VirtusaX — Data Storage Mind Map &amp; Schema Flows</strong></p>
+    <p>Generated: 2026-07-21 | MVP + R1 | Keycloak &bull; Jira &bull; PostgreSQL &rarr; NestJS Backend</p>
+</footer>
+
+</body>
+</html>
